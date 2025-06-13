@@ -392,23 +392,7 @@ function build_query($params = [])
 <?php include 'includes/admin-header.php'; ?>
 
 <!-- Debug Information -->
-<?php if ($debug): ?>
-    <div class="alert alert-info mb-4">
-        <h5><i class="fas fa-bug me-2"></i>Debug Mode</h5>
-        <div class="row">
-            <div class="col-md-6">
-                <p><strong>Request:</strong> <?php echo $_SERVER['REQUEST_METHOD']; ?></p>
-                <p><strong>POST Data:</strong></p>
-                <pre class="small"><?php print_r($_POST); ?></pre>
-            </div>
-            <div class="col-md-6">
-                <p><strong>Pagination:</strong> Page <?php echo $page; ?>/<?php echo $total_pages; ?></p>
-                <p><strong>Records:</strong> <?php echo count($categories); ?>/<?php echo $total_records; ?></p>
-                <p><strong>Edit Mode:</strong> <?php echo $edit_category ? 'ID ' . $edit_category['id'] : 'No'; ?></p>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
+
 
 <!-- Success/Error Messages -->
 <?php if ($message): ?>
@@ -433,13 +417,7 @@ function build_query($params = [])
         </h1>
         <p class="text-muted mb-0">Quản lý danh mục khóa học trong hệ thống</p>
     </div>
-    <div>
-        <a href="categories.php?<?php echo build_query(['debug' => $debug ? null : '1']); ?>"
-            class="btn btn-outline-<?php echo $debug ? 'secondary' : 'info'; ?>">
-            <i class="fas fa-bug<?php echo $debug ? '-slash' : ''; ?> me-2"></i>
-            <?php echo $debug ? 'Tắt' : 'Bật'; ?> Debug
-        </a>
-    </div>
+
 </div>
 
 <!-- Statistics Cards -->
