@@ -1,4 +1,5 @@
 <?php
+// filepath: d:\Xampp\htdocs\elearning\admin\courses.php
 require_once '../includes/config.php';
 
 // Check admin authentication
@@ -9,21 +10,21 @@ if (!isLoggedIn() || !isAdmin()) {
 $page_title = 'Quản lý khóa học';
 $current_page = 'courses';
 
-// Handle form submissions
+// Initialize variables
 $message = '';
 $error = '';
+$debug = isset($_GET['debug']);
 
-// Debug POST data
-if ($_POST && isset($_GET['debug'])) {
-    error_log("POST data received: " . print_r($_POST, true));
-}
+// Process form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Delete course
-    if (isset($_POST['delete_course']) && isset($_POST['course_id'])) {
-        $course_id = (int)$_POST['course_id'];
-        
-        if ($course_id > 0) {
+    // DELETE COURSE
+    if (isset($_POST['delete_course'])) {
+        $course_id = (int)($_POST['course_id'] ?? 0);
+
+        if ($course_id <= 0) {
+            $error = 'ID khóa học không hợp lệ!';
+        } else {
             try {
                 // Check if course has enrollments
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE course_id = ?");
@@ -33,37 +34,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if ($enrollment_count > 0) {
                     $error = "Không thể xóa khóa học này vì đã có {$enrollment_count} học viên đăng ký!";
                 } else {
-                    // Delete course and related data
                     $pdo->beginTransaction();
 
-                    // Delete lessons first (if lessons table exists)
+                    // Delete related data first
                     try {
-                        $stmt = $pdo->prepare("DELETE FROM lessons WHERE course_id = ?");
-                        $stmt->execute([$course_id]);
+                        $pdo->prepare("DELETE FROM lessons WHERE course_id = ?")->execute([$course_id]);
+                        $pdo->prepare("DELETE FROM reviews WHERE course_id = ?")->execute([$course_id]);
                     } catch (Exception $e) {
-                        // Lessons table might not exist, continue
-                    }
-
-                    // Delete reviews
-                    try {
-                        $stmt = $pdo->prepare("DELETE FROM reviews WHERE course_id = ?");
-                        $stmt->execute([$course_id]);
-                    } catch (Exception $e) {
-                        // Reviews table might not exist, continue
+                        // Tables might not exist
                     }
 
                     // Delete course
                     $stmt = $pdo->prepare("DELETE FROM courses WHERE id = ?");
-                    $result = $stmt->execute([$course_id]);
-
-                    if ($result && $stmt->rowCount() > 0) {
+                    if ($stmt->execute([$course_id]) && $stmt->rowCount() > 0) {
                         $pdo->commit();
-                        $message = 'Đã xóa khóa học thành công!';
-                        
-                        // Redirect to prevent resubmission
-                        $_SESSION['success_message'] = $message;
-                        header('Location: courses.php');
-                        exit();
+                        header('Location: courses.php?success=delete');
+                        exit;
                     } else {
                         $pdo->rollBack();
                         $error = 'Không tìm thấy khóa học để xóa!';
@@ -75,139 +61,201 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
                 $error = 'Có lỗi xảy ra khi xóa khóa học: ' . $e->getMessage();
             }
-        } else {
-            $error = 'ID khóa học không hợp lệ!';
         }
     }
 
-    // Toggle status
-    if (isset($_POST['toggle_status']) && isset($_POST['course_id']) && isset($_POST['new_status'])) {
-        $course_id = (int)$_POST['course_id'];
-        $new_status = $_POST['new_status'];
-        
-        // Validate status
-        if (!in_array($new_status, ['active', 'inactive'])) {
+    // TOGGLE STATUS
+    elseif (isset($_POST['toggle_status'])) {
+        $course_id = (int)($_POST['course_id'] ?? 0);
+        $new_status = $_POST['new_status'] ?? '';
+
+        if ($course_id <= 0) {
+            $error = 'ID khóa học không hợp lệ!';
+        } elseif (!in_array($new_status, ['active', 'inactive'])) {
             $error = 'Trạng thái không hợp lệ!';
-        } elseif ($course_id > 0) {
+        } else {
             try {
                 $stmt = $pdo->prepare("UPDATE courses SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                $result = $stmt->execute([$new_status, $course_id]);
-                
-                if ($result && $stmt->rowCount() > 0) {
-                    $message = 'Đã cập nhật trạng thái khóa học thành công!';
-                    
-                    // Redirect to prevent resubmission
-                    $_SESSION['success_message'] = $message;
-                    header('Location: courses.php');
-                    exit();
+                if ($stmt->execute([$new_status, $course_id]) && $stmt->rowCount() > 0) {
+                    header('Location: courses.php?success=toggle');
+                    exit;
                 } else {
                     $error = 'Không tìm thấy khóa học để cập nhật!';
                 }
             } catch (Exception $e) {
                 $error = 'Có lỗi xảy ra khi cập nhật trạng thái: ' . $e->getMessage();
             }
-        } else {
-            $error = 'ID khóa học không hợp lệ!';
         }
     }
 
-    // Bulk actions
-    if (isset($_POST['bulk_action']) && isset($_POST['selected_courses'])) {
+    // BULK ACTIONS - FIXED VERSION
+    elseif (isset($_POST['bulk_action']) && !empty($_POST['selected_courses'])) {
         $action = $_POST['bulk_action'];
         $selected_courses = (array)$_POST['selected_courses'];
         $success_count = 0;
-        
-        if (empty($selected_courses)) {
-            $error = 'Vui lòng chọn ít nhất một khóa học!';
+        $failed_count = 0;
+        $failed_reasons = [];
+
+        if (!in_array($action, ['activate', 'deactivate', 'delete'])) {
+            $error = 'Thao tác không hợp lệ!';
         } else {
             try {
                 $pdo->beginTransaction();
-                
+
                 foreach ($selected_courses as $course_id) {
                     $course_id = (int)$course_id;
                     if ($course_id <= 0) continue;
-                    
-                    switch ($action) {
-                        case 'activate':
-                            $stmt = $pdo->prepare("UPDATE courses SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                            if ($stmt->execute([$course_id]) && $stmt->rowCount() > 0) {
-                                $success_count++;
-                            }
-                            break;
-                            
-                        case 'deactivate':
-                            $stmt = $pdo->prepare("UPDATE courses SET status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                            if ($stmt->execute([$course_id]) && $stmt->rowCount() > 0) {
-                                $success_count++;
-                            }
-                            break;
-                            
-                        case 'delete':
-                            // Check enrollments
-                            $stmt = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE course_id = ?");
-                            $stmt->execute([$course_id]);
-                            if ($stmt->fetchColumn() == 0) {
-                                // Delete related data first
-                                try {
-                                    $pdo->prepare("DELETE FROM lessons WHERE course_id = ?")->execute([$course_id]);
-                                    $pdo->prepare("DELETE FROM reviews WHERE course_id = ?")->execute([$course_id]);
-                                } catch (Exception $e) {
-                                    // Tables might not exist
-                                }
-                                
-                                // Delete course
-                                $stmt = $pdo->prepare("DELETE FROM courses WHERE id = ?");
+
+                    // Get course info
+                    $stmt = $pdo->prepare("SELECT id, title FROM courses WHERE id = ?");
+                    $stmt->execute([$course_id]);
+                    $course = $stmt->fetch();
+
+                    if (!$course) {
+                        $failed_count++;
+                        $failed_reasons[] = "Khóa học ID {$course_id} không tồn tại";
+                        continue;
+                    }
+
+                    try {
+                        switch ($action) {
+                            case 'activate':
+                                $stmt = $pdo->prepare("UPDATE courses SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
                                 if ($stmt->execute([$course_id]) && $stmt->rowCount() > 0) {
                                     $success_count++;
+                                } else {
+                                    $failed_count++;
+                                    $failed_reasons[] = "Không thể kích hoạt: {$course['title']}";
                                 }
-                            }
-                            break;
+                                break;
+
+                            case 'deactivate':
+                                $stmt = $pdo->prepare("UPDATE courses SET status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                                if ($stmt->execute([$course_id]) && $stmt->rowCount() > 0) {
+                                    $success_count++;
+                                } else {
+                                    $failed_count++;
+                                    $failed_reasons[] = "Không thể vô hiệu hóa: {$course['title']}";
+                                }
+                                break;
+
+                            case 'delete':
+                                // Check enrollments
+                                $stmt = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE course_id = ?");
+                                $stmt->execute([$course_id]);
+                                $enrollment_count = $stmt->fetchColumn();
+
+                                if ($enrollment_count > 0) {
+                                    $failed_count++;
+                                    $failed_reasons[] = "{$course['title']} có {$enrollment_count} học viên";
+                                } else {
+                                    // Delete related data
+                                    try {
+                                        $pdo->prepare("DELETE FROM lessons WHERE course_id = ?")->execute([$course_id]);
+                                        $pdo->prepare("DELETE FROM reviews WHERE course_id = ?")->execute([$course_id]);
+                                    } catch (Exception $e) {
+                                        // Ignore if tables don't exist
+                                    }
+
+                                    // Delete course
+                                    $stmt = $pdo->prepare("DELETE FROM courses WHERE id = ?");
+                                    if ($stmt->execute([$course_id]) && $stmt->rowCount() > 0) {
+                                        $success_count++;
+                                    } else {
+                                        $failed_count++;
+                                        $failed_reasons[] = "Không thể xóa: {$course['title']}";
+                                    }
+                                }
+                                break;
+                        }
+                    } catch (Exception $e) {
+                        $failed_count++;
+                        $failed_reasons[] = "Lỗi xử lý {$course['title']}: " . $e->getMessage();
                     }
                 }
-                
+
                 $pdo->commit();
-                
+
+                // Build result message
                 if ($success_count > 0) {
-                    $action_name = match($action) {
+                    $action_name = match ($action) {
                         'activate' => 'kích hoạt',
-                        'deactivate' => 'vô hiệu hóa', 
+                        'deactivate' => 'vô hiệu hóa',
                         'delete' => 'xóa',
                         default => 'cập nhật'
                     };
-                    $message = "Đã {$action_name} thành công {$success_count} khóa học!";
-                    $_SESSION['success_message'] = $message;
-                    header('Location: courses.php');
-                    exit();
+
+                    $message = "Đã {$action_name} thành công {$success_count} khóa học";
+                    if ($failed_count > 0) {
+                        $message .= ", {$failed_count} khóa học không thể thực hiện";
+                    }
+                    $message .= "!";
+
+                    header('Location: courses.php?success=bulk&action=' . $action . '&count=' . $success_count . '&failed=' . $failed_count);
+                    exit;
                 } else {
                     $error = 'Không có khóa học nào được cập nhật!';
+                    if (!empty($failed_reasons)) {
+                        $error .= ' Lý do: ' . implode('; ', array_slice($failed_reasons, 0, 3));
+                    }
                 }
-                
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                $error = 'Có lỗi xảy ra khi thực hiện thao tác hàng loạt: ' . $e->getMessage();
+                $error = 'Có lỗi xảy ra: ' . $e->getMessage();
             }
+        }
+    } else {
+        if (isset($_POST['bulk_action'])) {
+            $error = 'Vui lòng chọn ít nhất một khóa học!';
         }
     }
 }
 
-// Handle success message from redirect
-if (isset($_SESSION['success_message'])) {
-    $message = $_SESSION['success_message'];
-    unset($_SESSION['success_message']);
+// Handle success messages
+if (isset($_GET['success'])) {
+    switch ($_GET['success']) {
+        case 'delete':
+            $message = 'Đã xóa khóa học thành công!';
+            break;
+        case 'toggle':
+            $message = 'Đã cập nhật trạng thái khóa học thành công!';
+            break;
+        case 'bulk':
+            $action = $_GET['action'] ?? '';
+            $count = $_GET['count'] ?? 0;
+            $failed = $_GET['failed'] ?? 0;
+            $action_name = match ($action) {
+                'activate' => 'kích hoạt',
+                'deactivate' => 'vô hiệu hóa',
+                'delete' => 'xóa',
+                default => 'cập nhật'
+            };
+            $message = "Đã {$action_name} thành công {$count} khóa học";
+            if ($failed > 0) {
+                $message .= ", {$failed} khóa học không thể thực hiện";
+            }
+            $message .= "!";
+            break;
+    }
 }
 
 // Get filter parameters
-$search = $_GET['search'] ?? '';
+$search = trim($_GET['search'] ?? '');
 $category_filter = $_GET['category'] ?? '';
 $status_filter = $_GET['status'] ?? '';
 $sort = $_GET['sort'] ?? 'newest';
-
-// Pagination
 $page = max(1, (int)($_GET['page'] ?? 1));
-$per_page = 20;
-$offset = ($page - 1) * $per_page;
+
+$requested_limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 5;
+$limit = in_array($requested_limit, [5, 10, 20, 50]) ? $requested_limit : 5;
+
+if ($limit <= 0) {
+    $limit = 5;
+}
+
+$offset = ($page - 1) * $limit;
 
 // Build WHERE clause
 $where_conditions = [];
@@ -233,7 +281,7 @@ if (!empty($status_filter)) {
 $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
 
 // Sort options
-$order_by = match ($sort) {
+$order_clause = match ($sort) {
     'oldest' => 'ORDER BY c.created_at ASC',
     'title' => 'ORDER BY c.title ASC',
     'price_high' => 'ORDER BY c.price DESC',
@@ -243,51 +291,52 @@ $order_by = match ($sort) {
 };
 
 // Get total count
-$count_sql = "
-    SELECT COUNT(*) 
-    FROM courses c 
-    LEFT JOIN categories cat ON c.category_id = cat.id 
-    $where_clause
-";
-$count_stmt = $pdo->prepare($count_sql);
-$count_stmt->execute($params);
-$total_courses = $count_stmt->fetchColumn();
-
-// Get courses with safe column handling
 try {
-    $sql = "
-        SELECT c.*, 
-               cat.name as category_name,
-               (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) as lesson_count,
-               (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) as enrollment_count
-        FROM courses c 
-        LEFT JOIN categories cat ON c.category_id = cat.id 
-        $where_clause 
-        $order_by
-        LIMIT $per_page OFFSET $offset
-    ";
+    $count_sql = "SELECT COUNT(DISTINCT c.id) FROM courses c LEFT JOIN categories cat ON c.category_id = cat.id $where_clause";
+    $stmt = $pdo->prepare($count_sql);
+    $stmt->execute($params);
+    $total_records = (int)$stmt->fetchColumn();
+
+    if ($total_records < 0) {
+        $total_records = 0;
+    }
+
+    $total_pages = ($total_records > 0 && $limit > 0) ? ceil($total_records / $limit) : 1;
+
+    if ($total_pages < 1) {
+        $total_pages = 1;
+    }
+
+    if ($page > $total_pages && $total_pages > 0) {
+        $page = $total_pages;
+        $offset = ($page - 1) * $limit;
+    }
+
+    // Get courses
+    $sql = "SELECT c.*, cat.name as category_name,
+            (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) as lesson_count,
+            (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) as enrollment_count
+            FROM courses c 
+            LEFT JOIN categories cat ON c.category_id = cat.id 
+            $where_clause
+            GROUP BY c.id 
+            $order_clause
+            LIMIT $offset, $limit";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $courses = $stmt->fetchAll();
-} catch (Exception $e) {
-    // If tables don't exist, get basic course data
-    $sql = "
-        SELECT c.*, 
-               cat.name as category_name,
-               0 as lesson_count,
-               0 as enrollment_count
-        FROM courses c 
-        LEFT JOIN categories cat ON c.category_id = cat.id 
-        $where_clause 
-        $order_by
-        LIMIT $per_page OFFSET $offset
-    ";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $courses = $stmt->fetchAll();
+} catch (PDOException $e) {
+    $courses = [];
+    $total_records = 0;
+    $total_pages = 1;
+    $error = 'Lỗi database: ' . $e->getMessage();
 }
+
+$total_records = max(0, $total_records);
+$total_pages = max(1, $total_pages);
+$page = max(1, min($page, $total_pages));
+$courses = $courses ?: [];
 
 // Get categories for filter
 try {
@@ -296,10 +345,7 @@ try {
     $categories = [];
 }
 
-// Calculate pagination
-$total_pages = ceil($total_courses / $per_page);
-
-// Get statistics with safe handling
+// Get statistics
 try {
     $stats = $pdo->query("
         SELECT 
@@ -321,79 +367,65 @@ try {
         'total_enrollments' => 0
     ];
 }
+
+// Build query string helper
+function build_query($params = [])
+{
+    global $search, $category_filter, $status_filter, $sort, $page, $limit;
+
+    $safe_limit = isset($limit) && in_array($limit, [5, 10, 20, 50]) ? $limit : 5;
+
+    $query_params = array_filter([
+        'search' => $search ?: null,
+        'category' => $category_filter ?: null,
+        'status' => $status_filter ?: null,
+        'sort' => ($sort != 'newest') ? $sort : null,
+        'page' => ($page > 1) ? $page : null,
+        'limit' => ($safe_limit != 5) ? $safe_limit : null
+    ], function ($value) {
+        return $value !== null && $value !== '';
+    });
+
+    $final_params = array_merge($query_params, array_filter($params, function ($value) {
+        return $value !== null && $value !== '';
+    }));
+
+    return http_build_query($final_params);
+}
 ?>
 
 <?php include 'includes/admin-header.php'; ?>
 
 <div class="container-fluid px-4">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-graduation-cap me-2"></i>Quản lý khóa học
-        </h1>
-        <div class="d-flex gap-2">
-            <a href="add-course.php" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus me-2"></i>Thêm khóa học mới
-            </a>
-            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
-                <i class="fas fa-print me-2"></i>In báo cáo
-            </button>
-            <?php if (!isset($_GET['debug'])): ?>
-                <a href="?debug=1" class="btn btn-outline-info btn-sm">
-                    <i class="fas fa-bug"></i> Debug
-                </a>
-            <?php else: ?>
-                <a href="courses.php" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-bug-slash"></i> Tắt Debug
-                </a>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Debug Info -->
-    <?php if (isset($_GET['debug'])): ?>
-        <div class="alert alert-info">
-            <h5><i class="fas fa-bug"></i> Debug Mode - Quản lý khóa học</h5>
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Request Method:</strong> <?php echo $_SERVER['REQUEST_METHOD']; ?></p>
-                    <p><strong>Total Courses:</strong> <?php echo $total_courses; ?></p>
-                    <p><strong>Categories:</strong> <?php echo count($categories); ?></p>
-                    <p><strong>Current Page:</strong> <?php echo $page; ?> / <?php echo $total_pages; ?></p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong>Filters:</strong></p>
-                    <ul class="small">
-                        <li>Search: <?php echo $search ?: 'None'; ?></li>
-                        <li>Category: <?php echo $category_filter ?: 'All'; ?></li>
-                        <li>Status: <?php echo $status_filter ?: 'All'; ?></li>
-                        <li>Sort: <?php echo $sort; ?></li>
-                    </ul>
-                </div>
-            </div>
-            <?php if ($_POST): ?>
-                <div class="mt-2">
-                    <strong>POST Data:</strong>
-                    <pre class="small bg-light p-2 rounded"><?php print_r($_POST); ?></pre>
-                </div>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
-
-    <!-- Messages -->
+    <!-- Success/Error Messages -->
     <?php if ($message): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i><?php echo $message; ?>
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i><?php echo htmlspecialchars($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i><?php echo $error; ?>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-graduation-cap me-2"></i><?php echo $page_title; ?>
+            </h1>
+            <p class="text-muted mb-0">Quản lý khóa học trong hệ thống</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="add-course.php" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Thêm khóa học
+            </a>
+        </div>
+    </div>
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
@@ -402,12 +434,8 @@ try {
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Tổng khóa học
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php echo number_format($stats['total_courses']); ?>
-                            </div>
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Tổng khóa học</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo number_format($stats['total_courses']); ?></div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-book fa-2x text-gray-300"></i>
@@ -422,12 +450,8 @@ try {
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Đang hoạt động
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php echo number_format($stats['active_courses']); ?>
-                            </div>
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Đang hoạt động</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo number_format($stats['active_courses']); ?></div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -442,12 +466,8 @@ try {
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Tổng đăng ký
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php echo number_format($stats['total_enrollments']); ?>
-                            </div>
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tổng đăng ký</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo number_format($stats['total_enrollments']); ?></div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -462,9 +482,7 @@ try {
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Giá trung bình
-                            </div>
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Giá trung bình</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 <?php echo $stats['avg_price'] > 0 ? number_format($stats['avg_price']) . ' VNĐ' : 'Miễn phí'; ?>
                             </div>
@@ -481,20 +499,19 @@ try {
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-header">
-            <i class="fas fa-filter me-2"></i>Bộ lọc và tìm kiếm
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>Bộ lọc và tìm kiếm
+            </h6>
         </div>
         <div class="card-body">
             <form method="GET" class="row g-3">
+                <input type="hidden" name="limit" value="<?php echo $limit; ?>">
+
                 <div class="col-md-4">
                     <label class="form-label">Tìm kiếm</label>
-                    <div class="input-group">
-                        <input type="text" name="search" class="form-control"
-                            placeholder="Tên khóa học..."
-                            value="<?php echo htmlspecialchars($search); ?>">
-                        <button class="btn btn-outline-secondary" type="submit">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+                    <input type="text" name="search" class="form-control"
+                        placeholder="Nhập tên khóa học..."
+                        value="<?php echo htmlspecialchars($search); ?>">
                 </div>
 
                 <div class="col-md-2">
@@ -514,73 +531,64 @@ try {
                     <label class="form-label">Trạng thái</label>
                     <select name="status" class="form-select">
                         <option value="">Tất cả</option>
-                        <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>
-                            Hoạt động
-                        </option>
-                        <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>
-                            Ngừng hoạt động
-                        </option>
+                        <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Hoạt động</option>
+                        <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Ngừng hoạt động</option>
                     </select>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Sắp xếp</label>
                     <select name="sort" class="form-select">
-                        <option value="newest" <?php echo $sort === 'newest' ? 'selected' : ''; ?>>
-                            Mới nhất
-                        </option>
-                        <option value="oldest" <?php echo $sort === 'oldest' ? 'selected' : ''; ?>>
-                            Cũ nhất
-                        </option>
-                        <option value="title" <?php echo $sort === 'title' ? 'selected' : ''; ?>>
-                            Tên A-Z
-                        </option>
-                        <option value="popular" <?php echo $sort === 'popular' ? 'selected' : ''; ?>>
-                            Phổ biến nhất
-                        </option>
-                        <option value="price_high" <?php echo $sort === 'price_high' ? 'selected' : ''; ?>>
-                            Giá cao nhất
-                        </option>
-                        <option value="price_low" <?php echo $sort === 'price_low' ? 'selected' : ''; ?>>
-                            Giá thấp nhất
-                        </option>
+                        <option value="newest" <?php echo $sort === 'newest' ? 'selected' : ''; ?>>Mới nhất</option>
+                        <option value="oldest" <?php echo $sort === 'oldest' ? 'selected' : ''; ?>>Cũ nhất</option>
+                        <option value="title" <?php echo $sort === 'title' ? 'selected' : ''; ?>>Tên A-Z</option>
+                        <option value="popular" <?php echo $sort === 'popular' ? 'selected' : ''; ?>>Phổ biến nhất</option>
+                        <option value="price_high" <?php echo $sort === 'price_high' ? 'selected' : ''; ?>>Giá cao nhất</option>
+                        <option value="price_low" <?php echo $sort === 'price_low' ? 'selected' : ''; ?>>Giá thấp nhất</option>
                     </select>
                 </div>
 
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-filter me-1"></i>Lọc
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Tìm kiếm
                     </button>
-                    <a href="courses.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-redo me-1"></i>Reset
-                    </a>
                 </div>
             </form>
+
+            <?php if ($search || $category_filter || $status_filter || $sort != 'newest'): ?>
+                <div class="mt-2">
+                    <a href="courses.php?<?php echo build_query(['search' => null, 'category' => null, 'status' => null, 'sort' => null, 'page' => null]); ?>"
+                        class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-times me-1"></i>Xóa bộ lọc
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <!-- Courses Table -->
-    <div class="card shadow mb-4">
+    <div class="card shadow">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">
-                Danh sách khóa học (<?php echo number_format($total_courses); ?> khóa học)
+                <i class="fas fa-list me-2"></i>Danh sách khóa học
+                <span class="badge bg-primary ms-2"><?php echo count($courses); ?></span>
             </h6>
             <div class="dropdown">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                    data-bs-toggle="dropdown">
+                    data-bs-toggle="dropdown" id="bulkActionDropdown">
                     <i class="fas fa-cog me-1"></i>Thao tác hàng loạt
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="prepareBulkAction('activate')">
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="handleBulkAction('activate')">
                             <i class="fas fa-check-circle me-2"></i>Kích hoạt
                         </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="prepareBulkAction('deactivate')">
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="handleBulkAction('deactivate')">
                             <i class="fas fa-times-circle me-2"></i>Vô hiệu hóa
                         </a></li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="prepareBulkAction('delete')">
+                    <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="handleBulkAction('delete')">
                             <i class="fas fa-trash me-2"></i>Xóa
                         </a></li>
                 </ul>
@@ -590,33 +598,33 @@ try {
         <div class="card-body">
             <?php if ($courses): ?>
                 <form id="bulkForm" method="POST">
-                    <input type="hidden" name="bulk_action" id="bulkAction">
-                    
+                    <input type="hidden" name="bulk_action" id="bulkAction" value="">
+
                     <div class="table-responsive">
-                        <table class="table table-hover" id="coursesTable">
-                            <thead>
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
                                 <tr>
-                                    <th width="50">
+                                    <th width="3%" class="text-center">
                                         <input type="checkbox" id="selectAll" class="form-check-input">
                                     </th>
-                                    <th width="80">Hình</th>
-                                    <th>Thông tin khóa học</th>
-                                    <th width="120">Danh mục</th>
-                                    <th width="100">Giá</th>
-                                    <th width="80">Bài học</th>
-                                    <th width="80">Học viên</th>
-                                    <th width="100">Trạng thái</th>
-                                    <th width="150">Thao tác</th>
+                                    <th width="8%" class="text-center">Hình ảnh</th>
+                                    <th width="25%" class="text-center">Thông tin khóa học</th>
+                                    <th width="10%" class="text-center">Danh mục</th>
+                                    <th width="8%" class="text-center">Giá</th>
+                                    <th width="6%" class="text-center">Bài học</th>
+                                    <th width="6%" class="text-center">Học viên</th>
+                                    <th width="10%" class="text-center">Trạng thái</th>
+                                    <th width="10%" class="text-center">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($courses as $course): ?>
+                                <?php foreach ($courses as $index => $course): ?>
                                     <tr>
-                                        <td>
+                                        <td class="text-center">
                                             <input type="checkbox" class="form-check-input course-checkbox"
                                                 name="selected_courses[]" value="<?php echo $course['id']; ?>">
                                         </td>
-                                        <td>
+                                        <td class="text-center">
                                             <img src="<?php echo $course['thumbnail'] ?: 'https://via.placeholder.com/80x60?text=No+Image'; ?>"
                                                 alt="<?php echo htmlspecialchars($course['title']); ?>"
                                                 class="rounded" style="width: 60px; height: 45px; object-fit: cover;">
@@ -624,70 +632,58 @@ try {
                                         <td>
                                             <div>
                                                 <h6 class="mb-1">
-                                                    <a href="../course-detail.php?id=<?php echo $course['id']; ?>"
-                                                        target="_blank" class="text-decoration-none">
-                                                        <?php echo htmlspecialchars($course['title']); ?>
-                                                        <i class="fas fa-external-link-alt fa-xs ms-1"></i>
-                                                    </a>
+                                                    <strong class="text-primary"><?php echo htmlspecialchars($course['title']); ?></strong>
                                                 </h6>
+                                                <p class="mb-1 text-muted small">
+                                                    <?php echo htmlspecialchars(mb_substr($course['description'], 0, 80)); ?>
+                                                    <?php if (mb_strlen($course['description']) > 80) echo '...'; ?>
+                                                </p>
                                                 <small class="text-muted">
-                                                    <?php echo htmlspecialchars(substr($course['description'], 0, 80)); ?>
-                                                    <?php echo strlen($course['description']) > 80 ? '...' : ''; ?>
-                                                </small>
-                                                <br>
-                                                <small class="text-muted">
-                                                    <i class="fas fa-calendar me-1"></i>
+                                                    ID: <?php echo $course['id']; ?>
+                                                    | <i class="fas fa-calendar me-1"></i>
                                                     <?php echo date('d/m/Y', strtotime($course['created_at'])); ?>
                                                 </small>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td class="text-center">
                                             <span class="badge bg-secondary">
                                                 <?php echo $course['category_name'] ?: 'Chưa phân loại'; ?>
                                             </span>
                                         </td>
-                                        <td>
+                                        <td class="text-center">
                                             <strong class="<?php echo $course['price'] > 0 ? 'text-success' : 'text-primary'; ?>">
                                                 <?php echo $course['price'] > 0 ? number_format($course['price']) . ' VNĐ' : 'Miễn phí'; ?>
                                             </strong>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-info">
-                                                <?php echo $course['lesson_count']; ?>
-                                            </span>
+                                            <span class="badge bg-info fs-6"><?php echo $course['lesson_count']; ?></span>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-warning">
-                                                <?php echo $course['enrollment_count']; ?>
-                                            </span>
+                                            <span class="badge bg-warning fs-6"><?php echo $course['enrollment_count']; ?></span>
                                         </td>
-                                        <td>
-                                            <form method="POST" class="d-inline" onsubmit="console.log('🔄 Toggle form submitted for course ID: <?php echo $course['id']; ?>')">
+                                        <td class="text-center">
+                                            <form method="POST" class="d-inline">
                                                 <input type="hidden" name="course_id" value="<?php echo $course['id']; ?>">
                                                 <input type="hidden" name="new_status" value="<?php echo $course['status'] === 'active' ? 'inactive' : 'active'; ?>">
                                                 <input type="hidden" name="toggle_status" value="1">
-                                                <button type="submit" 
+                                                <button type="submit"
                                                     class="btn btn-sm <?php echo $course['status'] === 'active' ? 'btn-success' : 'btn-secondary'; ?>"
-                                                    title="Click để thay đổi trạng thái"
-                                                    onclick="return confirm('Bạn có chắc muốn thay đổi trạng thái khóa học này?')">
+                                                    onclick="return confirm('Bạn có chắc muốn thay đổi trạng thái?')"
+                                                    title="<?php echo $course['status'] === 'active' ? 'Đang hoạt động - Click để tạm dừng' : 'Tạm dừng - Click để kích hoạt'; ?>">
                                                     <i class="fas fa-<?php echo $course['status'] === 'active' ? 'check' : 'times'; ?>"></i>
                                                     <?php echo $course['status'] === 'active' ? 'Hoạt động' : 'Tạm dừng'; ?>
                                                 </button>
                                             </form>
                                         </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
                                                 <a href="edit-course.php?id=<?php echo $course['id']; ?>"
                                                     class="btn btn-outline-primary btn-sm" title="Chỉnh sửa">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <a href="lessons.php?course_id=<?php echo $course['id']; ?>"
-                                                    class="btn btn-outline-info btn-sm" title="Quản lý bài học">
-                                                    <i class="fas fa-list"></i>
-                                                </a>
                                                 <button type="button" class="btn btn-outline-danger btn-sm"
                                                     onclick="deleteCourse(<?php echo $course['id']; ?>, '<?php echo addslashes($course['title']); ?>')"
-                                                    title="Xóa">
+                                                    title="Xóa" <?php echo $course['enrollment_count'] > 0 ? 'disabled' : ''; ?>>
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -699,57 +695,107 @@ try {
                     </div>
                 </form>
 
+                <!-- Pagination Info -->
+                <div class="mt-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                Hiển thị <?php echo count($courses); ?> khóa học
+                                (<?php echo number_format($offset + 1); ?> - <?php echo number_format($offset + count($courses)); ?>
+                                trong tổng số <?php echo number_format($total_records); ?>)
+                                <?php if ($search): ?>
+                                    với từ khóa "<strong><?php echo htmlspecialchars($search); ?></strong>"
+                                <?php endif; ?>
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">Trang <?php echo $page; ?> / <?php echo $total_pages; ?></small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
-                    <nav aria-label="Courses pagination" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            <?php if ($page > 1): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
-                                        <i class="fas fa-chevron-left"></i> Trước
-                                    </a>
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav>
+                            <ul class="pagination pagination-sm">
+                                <!-- Previous -->
+                                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                    <?php if ($page > 1): ?>
+                                        <a class="page-link" href="?<?php echo build_query(['page' => $page - 1]); ?>">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                                    <?php endif; ?>
                                 </li>
-                            <?php endif; ?>
 
-                            <?php
-                            $start_page = max(1, $page - 2);
-                            $end_page = min($total_pages, $page + 2);
+                                <?php
+                                $start_page = max(1, $page - 2);
+                                $end_page = min($total_pages, $page + 2);
 
-                            for ($i = $start_page; $i <= $end_page; $i++):
-                            ?>
-                                <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>">
-                                        <?php echo $i; ?>
-                                    </a>
+                                if ($start_page > 1) {
+                                    echo '<li class="page-item"><a class="page-link" href="?' . build_query(['page' => 1]) . '">1</a></li>';
+                                    if ($start_page > 2) {
+                                        echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                    }
+                                }
+
+                                for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                    <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                        <a class="page-link" href="?<?php echo build_query(['page' => $i]); ?>"><?php echo $i; ?></a>
+                                    </li>
+                                <?php endfor;
+
+                                if ($end_page < $total_pages) {
+                                    if ($end_page < $total_pages - 1) {
+                                        echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                    }
+                                    echo '<li class="page-item"><a class="page-link" href="?' . build_query(['page' => $total_pages]) . '">' . $total_pages . '</a></li>';
+                                }
+                                ?>
+
+                                <!-- Next -->
+                                <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
+                                    <?php if ($page < $total_pages): ?>
+                                        <a class="page-link" href="?<?php echo build_query(['page' => $page + 1]); ?>">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                                    <?php endif; ?>
                                 </li>
-                            <?php endfor; ?>
+                            </ul>
+                        </nav>
+                    </div>
 
-                            <?php if ($page < $total_pages): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
-                                        Sau <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
-                        </ul>
-                    </nav>
+                    <!-- Page Size Selector -->
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Hiển thị
+                            <select id="pageSize" class="form-select form-select-sm d-inline-block" style="width: auto;">
+                                <option value="5" <?php echo $limit == 5 ? 'selected' : ''; ?>>5</option>
+                                <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10</option>
+                                <option value="20" <?php echo $limit == 20 ? 'selected' : ''; ?>>20</option>
+                                <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50</option>
+                            </select>
+                            bản ghi mỗi trang
+                        </small>
+                    </div>
                 <?php endif; ?>
 
             <?php else: ?>
-                <!-- Empty State -->
                 <div class="text-center py-5">
-                    <i class="fas fa-book fa-3x text-muted mb-3"></i>
-                    <h5>Không tìm thấy khóa học nào</h5>
-                    <p class="text-muted">
-                        <?php if (!empty($search) || !empty($category_filter) || !empty($status_filter)): ?>
-                            Không có khóa học nào phù hợp với bộ lọc hiện tại.
+                    <i class="fas fa-book fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted">Không tìm thấy khóa học nào</h4>
+                    <p class="text-muted mb-4">
+                        <?php if ($search || $category_filter || $status_filter): ?>
+                            Thử thay đổi bộ lọc hoặc
+                            <a href="courses.php?<?php echo build_query(['search' => null, 'category' => null, 'status' => null, 'page' => null]); ?>">xem tất cả khóa học</a>
                         <?php else: ?>
-                            Chưa có khóa học nào trong hệ thống.
+                            Hệ thống chưa có khóa học nào. Hãy tạo khóa học đầu tiên!
                         <?php endif; ?>
                     </p>
-                    <a href="add-course.php" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Thêm khóa học đầu tiên
-                    </a>
                 </div>
             <?php endif; ?>
         </div>
@@ -757,12 +803,12 @@ try {
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa khóa học</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Xác nhận xóa khóa học</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="text-center mb-3">
@@ -773,9 +819,7 @@ try {
                     <strong id="courseTitle"></strong>?
                 </p>
                 <div class="alert alert-warning">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Cảnh báo:</strong> Hành động này sẽ xóa vĩnh viễn khóa học và tất cả bài học liên quan.
-                    Không thể hoàn tác!
+                    <strong>Cảnh báo:</strong> Hành động này sẽ xóa vĩnh viễn khóa học và tất cả dữ liệu liên quan!
                 </div>
             </div>
             <div class="modal-footer">
@@ -792,21 +836,20 @@ try {
     </div>
 </div>
 
-<!-- Bulk Action Confirmation Modal -->
-<div class="modal fade" id="bulkModal" tabindex="-1" aria-labelledby="bulkModalLabel" aria-hidden="true">
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="bulkModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="bulkModalTitle">Xác nhận thao tác hàng loạt</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="text-center mb-3">
                     <i class="fas fa-question-circle fa-3x text-primary"></i>
                 </div>
                 <p class="text-center" id="bulkModalMessage"></p>
-                <div class="alert alert-info" id="bulkModalAlert">
-                    <i class="fas fa-info-circle me-2"></i>
+                <div class="alert alert-info">
                     <span id="bulkModalAlertText"></span>
                 </div>
             </div>
@@ -820,7 +863,6 @@ try {
     </div>
 </div>
 
-<!-- Custom CSS -->
 <style>
     .border-left-primary {
         border-left: 0.25rem solid #4e73df !important;
@@ -841,165 +883,413 @@ try {
     .table th {
         border-top: none;
         font-weight: 600;
+        font-size: 0.85rem;
         color: #5a5c69;
+        vertical-align: middle;
+        white-space: nowrap;
+        padding: 12px 8px;
+    }
+
+    .table tbody tr:hover {
         background-color: #f8f9fc;
     }
 
-    .btn-group .btn {
-        border-radius: 0.25rem;
-        margin-right: 2px;
+    .table td {
+        vertical-align: middle;
+        padding: 12px 8px;
     }
 
-    .course-checkbox:checked {
+    .card {
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    }
+
+    .pagination .page-item.active .page-link {
         background-color: #4e73df;
         border-color: #4e73df;
     }
 
-    @media print {
-        .btn,
-        .card-header .dropdown,
-        .pagination,
-        .alert {
-            display: none !important;
-        }
+    .pagination .page-link {
+        color: #5a5c69;
+        border: 1px solid #dddfeb;
+    }
+
+    .pagination .page-link:hover {
+        color: #224abe;
+        background-color: #eaecf4;
+    }
+
+    .form-check-input {
+        margin: 0;
+    }
+
+    .btn-group-sm>.btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
     }
 </style>
 
-<!-- JavaScript -->
 <script>
-    // Select all functionality
-    document.getElementById('selectAll').addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.course-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
+// Global variables
+let selectedCourseIds = [];
+let currentBulkAction = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Page loaded');
+    
+    // Check if all required elements exist
+    const requiredElements = {
+        selectAll: document.getElementById('selectAll'),
+        bulkForm: document.getElementById('bulkForm'),
+        bulkAction: document.getElementById('bulkAction'),
+        confirmButton: document.getElementById('confirmBulkAction'),
+        bulkModal: document.getElementById('bulkModal'),
+        courseCheckboxes: document.querySelectorAll('.course-checkbox')
+    };
+    
+    console.log('🔍 Element check:', {
+        selectAll: !!requiredElements.selectAll,
+        bulkForm: !!requiredElements.bulkForm,
+        bulkAction: !!requiredElements.bulkAction,
+        confirmButton: !!requiredElements.confirmButton,
+        bulkModal: !!requiredElements.bulkModal,
+        courseCheckboxes: requiredElements.courseCheckboxes.length
     });
 
-    // Delete course function with enhanced logging
-    function deleteCourse(courseId, courseTitle) {
-        console.log('🗑️ Delete course called:', {courseId, courseTitle});
-        
-        document.getElementById('courseTitle').textContent = courseTitle;
-        document.getElementById('courseIdInput').value = courseId;
-
-        // Debug form before showing modal
-        const form = document.getElementById('deleteForm');
-        const formData = new FormData(form);
-        console.log('📋 Delete form data prepared:');
-        for (let pair of formData.entries()) {
-            console.log(`  ${pair[0]}: ${pair[1]}`);
-        }
-
-        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        modal.show();
-    }
-
-    // Enhanced form submission logging
-    document.getElementById('deleteForm').addEventListener('submit', function(e) {
-        console.log('📤 Delete form submitted');
-        const formData = new FormData(this);
-        console.log('📋 Final form data:');
-        for (let pair of formData.entries()) {
-            console.log(`  ${pair[0]}: ${pair[1]}`);
-        }
-    });
-
-    // Prepare bulk actions
-    function prepareBulkAction(action) {
-        const selectedCourses = document.querySelectorAll('.course-checkbox:checked');
-
-        if (selectedCourses.length === 0) {
-            alert('Vui lòng chọn ít nhất một khóa học!');
-            return;
-        }
-
-        const count = selectedCourses.length;
-        let title, message, alertText, alertClass;
-
-        switch(action) {
-            case 'activate':
-                title = 'Kích hoạt khóa học';
-                message = `Bạn có chắc muốn kích hoạt ${count} khóa học đã chọn?`;
-                alertText = 'Các khóa học được kích hoạt sẽ hiển thị công khai trên website.';
-                alertClass = 'alert-success';
-                break;
-            case 'deactivate':
-                title = 'Vô hiệu hóa khóa học';
-                message = `Bạn có chắc muốn vô hiệu hóa ${count} khóa học đã chọn?`;
-                alertText = 'Các khóa học bị vô hiệu hóa sẽ không hiển thị công khai.';
-                alertClass = 'alert-warning';
-                break;
-            case 'delete':
-                title = 'Xóa khóa học';
-                message = `Bạn có chắc chắn muốn xóa ${count} khóa học đã chọn?`;
-                alertText = 'Hành động này không thể hoàn tác! Chỉ các khóa học chưa có học viên đăng ký mới được xóa.';
-                alertClass = 'alert-danger';
-                break;
-        }
-
-        document.getElementById('bulkModalTitle').textContent = title;
-        document.getElementById('bulkModalMessage').textContent = message;
-        document.getElementById('bulkModalAlertText').textContent = alertText;
-        
-        const alertDiv = document.getElementById('bulkModalAlert');
-        alertDiv.className = `alert ${alertClass}`;
-        
-        document.getElementById('bulkAction').value = action;
-
-        const modal = new bootstrap.Modal(document.getElementById('bulkModal'));
-        modal.show();
-    }
-
-    // Confirm bulk action
-    document.getElementById('confirmBulkAction').addEventListener('click', function() {
-        document.getElementById('bulkForm').submit();
-    });
-
-    // Auto-submit form when filter changes
-    document.querySelectorAll('select[name="category"], select[name="status"], select[name="sort"]').forEach(select => {
-        select.addEventListener('change', function() {
-            this.form.submit();
-        });
-    });
-
-    // Table row hover effect
-    document.querySelectorAll('#coursesTable tbody tr').forEach(row => {
-        row.addEventListener('mouseenter', function() {
-            this.style.backgroundColor = '#f8f9fc';
-        });
-
-        row.addEventListener('mouseleave', function() {
-            this.style.backgroundColor = '';
-        });
-    });
-
-    // Auto-hide alerts after 5 seconds
+    // Auto-hide alerts
     setTimeout(() => {
-        document.querySelectorAll('.alert-dismissible').forEach(alert => {
-            if (bootstrap.Alert.getInstance(alert)) {
-                const bsAlert = bootstrap.Alert.getInstance(alert);
-                bsAlert.close();
-            }
+        document.querySelectorAll('.alert:not(.alert-info)').forEach(alert => {
+            new bootstrap.Alert(alert).close();
         });
     }, 5000);
 
-    // Log successful page load
-    console.log('✅ Courses management page loaded successfully');
-    console.log(`📊 Total courses: <?php echo $total_courses; ?>`);
-    console.log(`📄 Current page: <?php echo $page; ?> of <?php echo $total_pages; ?>`);
+    // Select all functionality
+    if (requiredElements.selectAll) {
+        requiredElements.selectAll.addEventListener('change', function() {
+            console.log('🔄 Select all clicked:', this.checked);
+            requiredElements.courseCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedIds();
+            console.log('✅ Select all result. Selected:', selectedCourseIds.length, 'IDs:', selectedCourseIds);
+        });
+    }
 
-    // Enhanced toggle status form submission logging
-    document.querySelectorAll('form[method="POST"]').forEach(form => {
-        if (form.querySelector('button[name="toggle_status"]')) {
-            form.addEventListener('submit', function(e) {
-                console.log('🔄 Toggle status form submitted');
-                const formData = new FormData(this);
-                for (let pair of formData.entries()) {
-                    console.log(`  ${pair[0]}: ${pair[1]}`);
+    // Individual checkbox change
+    requiredElements.courseCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            console.log('📝 Individual checkbox changed. ID:', this.value, 'Checked:', this.checked);
+            updateSelectAllState();
+            updateSelectedIds();
+            console.log('📊 Current selection:', selectedCourseIds.length, 'IDs:', selectedCourseIds);
+        });
+    });
+
+    // Page size selector
+    document.getElementById('pageSize')?.addEventListener('change', function() {
+        const url = new URL(window.location);
+        url.searchParams.set('limit', this.value);
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    });
+
+    // Bulk action confirm button - ENHANCED
+    if (requiredElements.confirmButton && requiredElements.bulkForm) {
+        requiredElements.confirmButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🔥 CONFIRM BUTTON CLICKED');
+            console.log('📊 Current state before confirmation:', {
+                selectedCourseIds: selectedCourseIds,
+                currentBulkAction: currentBulkAction,
+                selectedCount: selectedCourseIds.length
+            });
+
+            if (selectedCourseIds.length === 0) {
+                alert('Không có khóa học nào được chọn!');
+                console.warn('⚠️ No courses selected!');
+                return;
+            }
+
+            if (!currentBulkAction) {
+                alert('Không có thao tác nào được chọn!');
+                console.warn('⚠️ No bulk action selected!');
+                return;
+            }
+
+            // Set bulk action input
+            const bulkActionInput = document.getElementById('bulkAction');
+            if (bulkActionInput) {
+                bulkActionInput.value = currentBulkAction;
+                console.log('✅ Set bulk action input to:', currentBulkAction);
+            } else {
+                console.error('❌ Bulk action input not found!');
+                return;
+            }
+
+            // RE-CHECK all selected checkboxes to ensure they're checked
+            console.log('🔄 Re-checking selected checkboxes...');
+            let recheckedCount = 0;
+            selectedCourseIds.forEach(id => {
+                const checkbox = document.querySelector(`.course-checkbox[value="${id}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    recheckedCount++;
+                    console.log(`✅ Re-checked course ID: ${id}`);
+                } else {
+                    console.warn(`⚠️ Checkbox not found for ID: ${id}`);
                 }
             });
-        }
+            
+            console.log(`📋 Re-checked ${recheckedCount} out of ${selectedCourseIds.length} checkboxes`);
+
+            // Final form data verification
+            const formData = new FormData(requiredElements.bulkForm);
+            console.log('📤 FINAL FORM DATA CHECK:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}: ${value}`);
+            }
+
+            // Verify selected courses in form data
+            const selectedCoursesInForm = formData.getAll('selected_courses[]');
+            console.log('🔍 Selected courses in form:', selectedCoursesInForm);
+            console.log('🔍 Expected selected courses:', selectedCourseIds);
+            
+            if (selectedCoursesInForm.length === 0) {
+                console.error('❌ NO SELECTED COURSES IN FORM DATA!');
+                alert('Lỗi: Không có khóa học nào trong form data. Vui lòng thử lại!');
+                return;
+            }
+
+            // Hide modal
+            const modalElement = document.getElementById('bulkModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                    console.log('✅ Modal hidden');
+                }
+            }
+
+            // Submit form with delay
+            setTimeout(() => {
+                console.log('🚀 SUBMITTING FORM...');
+                console.log('📝 Form action:', requiredElements.bulkForm.action || 'current page');
+                console.log('📝 Form method:', requiredElements.bulkForm.method);
+                
+                // Final check before submit
+                const finalFormData = new FormData(requiredElements.bulkForm);
+                console.log('🔍 FINAL SUBMIT DATA:');
+                for (let [key, value] of finalFormData.entries()) {
+                    console.log(`  ${key}: ${value}`);
+                }
+                
+                requiredElements.bulkForm.submit();
+            }, 500);
+        });
+    } else {
+        console.error('❌ Required elements missing:', {
+            confirmButton: !!requiredElements.confirmButton,
+            bulkForm: !!requiredElements.bulkForm
+        });
+    }
+
+    console.log('✅ Initialization complete');
+});
+
+// Update selected IDs array
+function updateSelectedIds() {
+    const selected = document.querySelectorAll('.course-checkbox:checked');
+    selectedCourseIds = Array.from(selected).map(cb => cb.value);
+    console.log('🔄 Updated selectedCourseIds:', selectedCourseIds);
+}
+
+// Update select all checkbox state
+function updateSelectAllState() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (!selectAllCheckbox) return;
+
+    const courseCheckboxes = document.querySelectorAll('.course-checkbox');
+    const checkedCount = document.querySelectorAll('.course-checkbox:checked').length;
+    const totalCount = courseCheckboxes.length;
+
+    if (checkedCount === 0) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+    } else if (checkedCount === totalCount) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = true;
+    } else {
+        selectAllCheckbox.indeterminate = true;
+        selectAllCheckbox.checked = false;
+    }
+}
+
+// Handle bulk actions - ENHANCED
+function handleBulkAction(action) {
+    console.log('🔧 HANDLE BULK ACTION CALLED:', action);
+
+    // Force update selected IDs
+    updateSelectedIds();
+    
+    console.log('📊 Selection check:', {
+        action: action,
+        selectedCount: selectedCourseIds.length,
+        selectedIds: selectedCourseIds
     });
+
+    if (selectedCourseIds.length === 0) {
+        alert('Vui lòng chọn ít nhất một khóa học!');
+        console.warn('⚠️ No courses selected for bulk action');
+        return false;
+    }
+
+    // Store current action
+    currentBulkAction = action;
+    const count = selectedCourseIds.length;
+    let title, message, alertText;
+
+    switch (action) {
+        case 'activate':
+            title = 'Kích hoạt khóa học';
+            message = `Bạn có chắc muốn kích hoạt ${count} khóa học đã chọn?`;
+            alertText = 'Các khóa học sẽ được kích hoạt và hiển thị công khai.';
+            break;
+        case 'deactivate':
+            title = 'Vô hiệu hóa khóa học';
+            message = `Bạn có chắc muốn vô hiệu hóa ${count} khóa học đã chọn?`;
+            alertText = 'Các khóa học sẽ bị ẩn khỏi danh sách công khai.';
+            break;
+        case 'delete':
+            title = 'Xóa khóa học';
+            message = `Bạn có chắc chắn muốn xóa ${count} khóa học đã chọn?`;
+            alertText = 'Chỉ các khóa học chưa có học viên đăng ký mới được xóa!';
+            break;
+        default:
+            console.error('❌ Invalid action:', action);
+            return false;
+    }
+
+    // DETAILED MODAL ELEMENTS DEBUG
+    const modalElements = {
+        title: document.getElementById('bulkModalTitle'),
+        message: document.getElementById('bulkModalMessage'),
+        alertText: document.getElementById('bulkModalAlertText'),
+        modal: document.getElementById('bulkModal')
+    };
+
+    console.log('🔍 DETAILED Modal elements check:');
+    console.log('  bulkModalTitle:', modalElements.title);
+    console.log('  bulkModalMessage:', modalElements.message);
+    console.log('  bulkModalAlertText:', modalElements.alertText);
+    console.log('  bulkModal:', modalElements.modal);
+
+    // Check if modal HTML exists in DOM
+    const allModals = document.querySelectorAll('.modal');
+    console.log('🔍 All modals in DOM:', allModals.length);
+    allModals.forEach((modal, index) => {
+        console.log(`  Modal ${index}:`, modal.id, modal);
+    });
+
+    // Try alternative approach if elements are missing
+    if (!modalElements.title || !modalElements.message || !modalElements.alertText || !modalElements.modal) {
+        console.error('❌ Some modal elements missing!');
+        
+        // FALLBACK: Use native confirm dialog
+        const confirmMessage = `${message}\n\n${alertText}`;
+        if (confirm(confirmMessage)) {
+            console.log('🔥 User confirmed via native dialog');
+            
+            // Set bulk action input
+            const bulkActionInput = document.getElementById('bulkAction');
+            if (bulkActionInput) {
+                bulkActionInput.value = currentBulkAction;
+                console.log('✅ Set bulk action input to:', currentBulkAction);
+            }
+
+            // Re-check all selected checkboxes
+            console.log('🔄 Re-checking selected checkboxes...');
+            selectedCourseIds.forEach(id => {
+                const checkbox = document.querySelector(`.course-checkbox[value="${id}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    console.log(`✅ Re-checked course ID: ${id}`);
+                }
+            });
+
+            // Submit form directly
+            const bulkForm = document.getElementById('bulkForm');
+            if (bulkForm) {
+                console.log('🚀 SUBMITTING FORM via fallback...');
+                bulkForm.submit();
+            } else {
+                console.error('❌ Bulk form not found!');
+                alert('Lỗi: Không tìm thấy form để submit!');
+            }
+        }
+        return false;
+    }
+
+    // Set modal content if elements exist
+    modalElements.title.textContent = title;
+    modalElements.message.textContent = message;
+    modalElements.alertText.textContent = alertText;
+
+    console.log('✅ Modal setup complete:', {
+        action: action,
+        count: count,
+        title: title,
+        storedAction: currentBulkAction
+    });
+
+    // Show modal
+    try {
+        const modal = new bootstrap.Modal(modalElements.modal);
+        modal.show();
+        console.log('✅ Modal shown successfully');
+    } catch (error) {
+        console.error('❌ Error showing modal:', error);
+        alert('Lỗi hiển thị modal: ' + error.message);
+        return false;
+    }
+
+    return true;
+}
+
+// Delete course function
+function deleteCourse(courseId, courseTitle) {
+    console.log('🗑️ Delete course:', courseId, courseTitle);
+    document.getElementById('courseTitle').textContent = courseTitle;
+    document.getElementById('courseIdInput').value = courseId;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+// Debug function to check current states
+function debugCurrentState() {
+    console.log('🔍 DEBUG CURRENT STATE:');
+    console.log('Selected Course IDs:', selectedCourseIds);
+    console.log('Current Bulk Action:', currentBulkAction);
+    
+    const checkedBoxes = document.querySelectorAll('.course-checkbox:checked');
+    console.log('Actually Checked Checkboxes:', checkedBoxes.length);
+    console.log('Checked Values:', Array.from(checkedBoxes).map(cb => cb.value));
+    
+    const bulkActionInput = document.getElementById('bulkAction');
+    console.log('Bulk Action Input Value:', bulkActionInput ? bulkActionInput.value : 'NOT FOUND');
+    
+    const bulkForm = document.getElementById('bulkForm');
+    if (bulkForm) {
+        const formData = new FormData(bulkForm);
+        console.log('Current Form Data:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`  ${key}: ${value}`);
+        }
+    }
+}
+
+// Make debug function available globally
+window.debugCurrentState = debugCurrentState;
 </script>
 
 <?php include 'includes/admin-footer.php'; ?>
