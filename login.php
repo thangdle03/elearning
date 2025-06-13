@@ -158,36 +158,7 @@ if ($_POST) {
                         </p>
                     </div>
                     
-                    <!-- Demo Accounts -->
-                    <div class="mt-4 p-3 bg-light rounded">
-                        <h6 class="fw-bold mb-2">
-                            <i class="bi bi-info-circle me-1"></i>Tài khoản demo:
-                        </h6>
-                        <div class="row">
-                            <div class="col-6">
-                                <small class="text-muted">
-                                    <strong>Admin:</strong><br>
-                                    Username: <code>admin</code><br>
-                                    Password: <code>admin123</code>
-                                </small>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">
-                                    <strong>Student:</strong><br>
-                                    Username: <code>student1</code><br>
-                                    Password: <code>student123</code>
-                                </small>
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="fillDemo('admin')">
-                                Dùng Admin
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillDemo('student')">
-                                Dùng Student
-                            </button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
             
