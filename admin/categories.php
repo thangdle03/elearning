@@ -9,85 +9,114 @@ if (!isLoggedIn() || !isAdmin()) {
 $page_title = 'Quản lý danh mục';
 $current_page = 'categories';
 
-// Handle form submissions
+// Initialize variables
 $message = '';
 $error = '';
-
-// Debug mode
 $debug = isset($_GET['debug']);
 
-// Helper function to generate slug
-function generateSlug($text) {
-    // Convert Vietnamese characters to ASCII
+// Helper function to generate slug from Vietnamese text
+function generateSlug($text)
+{
     $vietnamese = [
-        'á' => 'a', 'à' => 'a', 'ả' => 'a', 'ã' => 'a', 'ạ' => 'a',
-        'ă' => 'a', 'ắ' => 'a', 'ằ' => 'a', 'ẳ' => 'a', 'ẵ' => 'a', 'ặ' => 'a',
-        'â' => 'a', 'ấ' => 'a', 'ầ' => 'a', 'ẩ' => 'a', 'ẫ' => 'a', 'ậ' => 'a',
-        'é' => 'e', 'è' => 'e', 'ẻ' => 'e', 'ẽ' => 'e', 'ẹ' => 'e',
-        'ê' => 'e', 'ế' => 'e', 'ề' => 'e', 'ể' => 'e', 'ễ' => 'e', 'ệ' => 'e',
-        'í' => 'i', 'ì' => 'i', 'ỉ' => 'i', 'ĩ' => 'i', 'ị' => 'i',
-        'ó' => 'o', 'ò' => 'o', 'ỏ' => 'o', 'õ' => 'o', 'ọ' => 'o',
-        'ô' => 'o', 'ố' => 'o', 'ồ' => 'o', 'ổ' => 'o', 'ỗ' => 'o', 'ộ' => 'o',
-        'ơ' => 'o', 'ớ' => 'o', 'ờ' => 'o', 'ở' => 'o', 'ỡ' => 'o', 'ợ' => 'o',
-        'ú' => 'u', 'ù' => 'u', 'ủ' => 'u', 'ũ' => 'u', 'ụ' => 'u',
-        'ư' => 'u', 'ứ' => 'u', 'ừ' => 'u', 'ử' => 'u', 'ữ' => 'u', 'ự' => 'u',
-        'ý' => 'y', 'ỳ' => 'y', 'ỷ' => 'y', 'ỹ' => 'y', 'ỵ' => 'y',
+        'á' => 'a',
+        'à' => 'a',
+        'ả' => 'a',
+        'ã' => 'a',
+        'ạ' => 'a',
+        'ă' => 'a',
+        'ắ' => 'a',
+        'ằ' => 'a',
+        'ẳ' => 'a',
+        'ẵ' => 'a',
+        'ặ' => 'a',
+        'â' => 'a',
+        'ấ' => 'a',
+        'ầ' => 'a',
+        'ẩ' => 'a',
+        'ẫ' => 'a',
+        'ậ' => 'a',
+        'é' => 'e',
+        'è' => 'e',
+        'ẻ' => 'e',
+        'ẽ' => 'e',
+        'ẹ' => 'e',
+        'ê' => 'e',
+        'ế' => 'e',
+        'ề' => 'e',
+        'ể' => 'e',
+        'ễ' => 'e',
+        'ệ' => 'e',
+        'í' => 'i',
+        'ì' => 'i',
+        'ỉ' => 'i',
+        'ĩ' => 'i',
+        'ị' => 'i',
+        'ó' => 'o',
+        'ò' => 'o',
+        'ỏ' => 'o',
+        'õ' => 'o',
+        'ọ' => 'o',
+        'ô' => 'o',
+        'ố' => 'o',
+        'ồ' => 'o',
+        'ổ' => 'o',
+        'ỗ' => 'o',
+        'ộ' => 'o',
+        'ơ' => 'o',
+        'ớ' => 'o',
+        'ờ' => 'o',
+        'ở' => 'o',
+        'ỡ' => 'o',
+        'ợ' => 'o',
+        'ú' => 'u',
+        'ù' => 'u',
+        'ủ' => 'u',
+        'ũ' => 'u',
+        'ụ' => 'u',
+        'ư' => 'u',
+        'ứ' => 'u',
+        'ừ' => 'u',
+        'ử' => 'u',
+        'ữ' => 'u',
+        'ự' => 'u',
+        'ý' => 'y',
+        'ỳ' => 'y',
+        'ỷ' => 'y',
+        'ỹ' => 'y',
+        'ỵ' => 'y',
         'đ' => 'd'
     ];
-    
+
     $text = strtolower($text);
     $text = strtr($text, $vietnamese);
     $text = preg_replace('/[^a-z0-9\s-]/', '', $text);
     $text = preg_replace('/[\s-]+/', '-', $text);
     $text = trim($text, '-');
-    
+
     return $text;
 }
 
 // Process form submissions
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($debug) {
-        error_log("=== POST DEBUG START ===");
-        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
-        error_log("POST count: " . count($_POST));
-        error_log("POST keys: " . implode(', ', array_keys($_POST)));
+        error_log("=== POST DEBUG ===");
         error_log("POST data: " . print_r($_POST, true));
-        error_log("=== POST DEBUG END ===");
     }
 
-    // Check if POST data exists
-    if (empty($_POST)) {
-        if ($debug) {
-            error_log("ERROR: Empty POST data");
-        }
-        $error = 'Không nhận được dữ liệu form!';
-    }
-    // DELETE CATEGORY - Check this FIRST
-    elseif (isset($_POST['delete_category'])) {
+    // DELETE CATEGORY
+    if (isset($_POST['delete_category'])) {
         $category_id = (int)($_POST['category_id'] ?? 0);
-
-        if ($debug) {
-            error_log("DELETE CATEGORY: ID=$category_id");
-            error_log("POST delete_category value: " . $_POST['delete_category']);
-        }
 
         if ($category_id <= 0) {
             $error = 'ID danh mục không hợp lệ!';
-            if ($debug) {
-                error_log("DELETE ERROR: Invalid category ID: $category_id");
-            }
         } else {
             try {
-                // Check if category exists and get info
+                // Check if category exists
                 $stmt = $pdo->prepare("SELECT id, name FROM categories WHERE id = ?");
                 $stmt->execute([$category_id]);
-                $existing = $stmt->fetch();
+                $category = $stmt->fetch();
 
-                if ($debug) {
-                    error_log("DELETE: Category exists check - " . ($existing ? "Found: " . $existing['name'] : "Not found"));
-                }
-
-                if (!$existing) {
+                if (!$category) {
                     $error = 'Danh mục không tồn tại!';
                 } else {
                     // Check if has courses
@@ -95,60 +124,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $stmt->execute([$category_id]);
                     $course_count = $stmt->fetchColumn();
 
-                    if ($debug) {
-                        error_log("DELETE: Course count check - $course_count courses found");
-                    }
-
                     if ($course_count > 0) {
-                        $error = "Không thể xóa danh mục '{$existing['name']}' vì đang có {$course_count} khóa học!";
+                        $error = "Không thể xóa danh mục '{$category['name']}' vì đang có {$course_count} khóa học!";
                     } else {
                         // Delete category
                         $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ?");
-                        $deleteResult = $stmt->execute([$category_id]);
-                        $rowsAffected = $stmt->rowCount();
-                        
-                        if ($debug) {
-                            error_log("DELETE: Execute result - " . ($deleteResult ? "SUCCESS" : "FAILED"));
-                            error_log("DELETE: Rows affected - $rowsAffected");
-                        }
-
-                        if ($deleteResult && $rowsAffected > 0) {
-                            if ($debug) {
-                                error_log("DELETE SUCCESS: Category '{$existing['name']}' (ID: $category_id) deleted");
-                            }
-                            $redirect_url = 'categories.php?success=delete';
-                            if ($debug) $redirect_url .= '&debug=1';
-                            header('Location: ' . $redirect_url);
+                        if ($stmt->execute([$category_id])) {
+                            $message = 'Đã xóa danh mục thành công!';
+                            header('Location: categories.php?success=delete' . ($debug ? '&debug=1' : ''));
                             exit;
                         } else {
-                            $error = 'Không thể xóa danh mục! Có thể danh mục không tồn tại hoặc đã bị xóa.';
-                            if ($debug) {
-                                error_log("DELETE ERROR: Delete failed - Execute: $deleteResult, Rows: $rowsAffected");
-                            }
+                            $error = 'Có lỗi khi xóa danh mục!';
                         }
                     }
                 }
             } catch (PDOException $e) {
                 $error = 'Lỗi database: ' . $e->getMessage();
-                if ($debug) {
-                    error_log("DELETE ERROR: " . $e->getMessage());
-                }
             }
         }
     }
-    // EDIT CATEGORY - Check this SECOND
-    elseif (isset($_POST['category_id']) && (int)$_POST['category_id'] > 0 && isset($_POST['name'])) {
-        $category_id = (int)($_POST['category_id'] ?? 0);
-        $name = trim($_POST['name'] ?? '');
+    // EDIT CATEGORY
+    elseif (isset($_POST['category_id']) && isset($_POST['name'])) {
+        $category_id = (int)$_POST['category_id'];
+        $name = trim($_POST['name']);
         $description = trim($_POST['description'] ?? '');
 
-        if ($debug) {
-            error_log("EDIT CATEGORY (auto-detected): ID=$category_id, Name='$name', Description='$description'");
-        }
-
-        if ($category_id <= 0) {
-            $error = 'ID danh mục không hợp lệ!';
-        } elseif (empty($name)) {
+        if (empty($name)) {
             $error = 'Tên danh mục không được để trống!';
         } elseif (strlen($name) < 2) {
             $error = 'Tên danh mục phải có ít nhất 2 ký tự!';
@@ -156,69 +157,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error = 'Tên danh mục không được quá 100 ký tự!';
         } else {
             try {
-                // Check if category exists
-                $stmt = $pdo->prepare("SELECT id, name FROM categories WHERE id = ?");
-                $stmt->execute([$category_id]);
-                $existing = $stmt->fetch();
-
-                if (!$existing) {
-                    $error = 'Danh mục không tồn tại!';
+                // Check duplicate name (except current)
+                $stmt = $pdo->prepare("SELECT id FROM categories WHERE name = ? AND id != ?");
+                $stmt->execute([$name, $category_id]);
+                if ($stmt->fetch()) {
+                    $error = 'Tên danh mục đã tồn tại!';
                 } else {
-                    // Check duplicate name (except current)
-                    $stmt = $pdo->prepare("SELECT id FROM categories WHERE name = ? AND id != ?");
-                    $stmt->execute([$name, $category_id]);
-                    if ($stmt->fetch()) {
-                        $error = 'Tên danh mục đã tồn tại!';
+                    $slug = generateSlug($name);
+
+                    // Ensure unique slug
+                    $original_slug = $slug;
+                    $counter = 1;
+                    while (true) {
+                        $stmt = $pdo->prepare("SELECT id FROM categories WHERE slug = ? AND id != ?");
+                        $stmt->execute([$slug, $category_id]);
+                        if (!$stmt->fetch()) break;
+                        $slug = $original_slug . '-' . $counter++;
+                    }
+
+                    // Update category
+                    $stmt = $pdo->prepare("UPDATE categories SET name = ?, description = ?, slug = ? WHERE id = ?");
+                    if ($stmt->execute([$name, $description, $slug, $category_id])) {
+                        header('Location: categories.php?success=edit' . ($debug ? '&debug=1' : ''));
+                        exit;
                     } else {
-                        $slug = generateSlug($name);
-                        
-                        // Check if slug exists (except current), add number if needed
-                        $original_slug = $slug;
-                        $counter = 1;
-                        while (true) {
-                            $stmt = $pdo->prepare("SELECT id FROM categories WHERE slug = ? AND id != ?");
-                            $stmt->execute([$slug, $category_id]);
-                            if (!$stmt->fetch()) {
-                                break;
-                            }
-                            $slug = $original_slug . '-' . $counter;
-                            $counter++;
-                        }
-                        
-                        // Update category
-                        $stmt = $pdo->prepare("UPDATE categories SET name = ?, description = ?, slug = ? WHERE id = ?");
-                        if ($stmt->execute([$name, $description, $slug, $category_id])) {
-                            if ($debug) {
-                                error_log("EDIT SUCCESS: Category ID $category_id updated, rows affected = " . $stmt->rowCount());
-                            }
-                            $redirect_url = 'categories.php?success=edit';
-                            if ($debug) $redirect_url .= '&debug=1';
-                            header('Location: ' . $redirect_url);
-                            exit;
-                        } else {
-                            $error = 'Có lỗi khi cập nhật danh mục!';
-                            if ($debug) {
-                                error_log("EDIT ERROR: Update failed");
-                            }
-                        }
+                        $error = 'Có lỗi khi cập nhật danh mục!';
                     }
                 }
             } catch (PDOException $e) {
                 $error = 'Lỗi database: ' . $e->getMessage();
-                if ($debug) {
-                    error_log("EDIT ERROR: " . $e->getMessage());
-                }
             }
         }
     }
     // ADD CATEGORY
-    elseif (isset($_POST['add_category']) || (isset($_POST['name']) && !isset($_POST['category_id']))) {
-        $name = trim($_POST['name'] ?? '');
+    elseif (isset($_POST['name'])) {
+        $name = trim($_POST['name']);
         $description = trim($_POST['description'] ?? '');
-
-        if ($debug) {
-            error_log("ADD CATEGORY: Name='$name', Description='$description'");
-        }
 
         if (empty($name)) {
             $error = 'Tên danh mục không được để trống!';
@@ -235,61 +209,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $error = 'Tên danh mục đã tồn tại!';
                 } else {
                     $slug = generateSlug($name);
-                    
-                    // Check if slug exists, add number if needed
+
+                    // Ensure unique slug
                     $original_slug = $slug;
                     $counter = 1;
                     while (true) {
                         $stmt = $pdo->prepare("SELECT id FROM categories WHERE slug = ?");
                         $stmt->execute([$slug]);
-                        if (!$stmt->fetch()) {
-                            break;
-                        }
-                        $slug = $original_slug . '-' . $counter;
-                        $counter++;
+                        if (!$stmt->fetch()) break;
+                        $slug = $original_slug . '-' . $counter++;
                     }
-                    
+
                     // Insert new category
                     $stmt = $pdo->prepare("INSERT INTO categories (name, description, slug, status, created_at) VALUES (?, ?, ?, 'active', NOW())");
                     if ($stmt->execute([$name, $description, $slug])) {
-                        if ($debug) {
-                            error_log("ADD SUCCESS: Category added with ID = " . $pdo->lastInsertId());
-                        }
-                        $redirect_url = 'categories.php?success=add';
-                        if ($debug) $redirect_url .= '&debug=1';
-                        header('Location: ' . $redirect_url);
+                        header('Location: categories.php?success=add' . ($debug ? '&debug=1' : ''));
                         exit;
                     } else {
                         $error = 'Có lỗi khi thêm danh mục!';
-                        if ($debug) {
-                            error_log("ADD ERROR: Insert failed");
-                        }
                     }
                 }
             } catch (PDOException $e) {
                 $error = 'Lỗi database: ' . $e->getMessage();
-                if ($debug) {
-                    error_log("ADD ERROR: " . $e->getMessage());
-                }
             }
         }
     }
-    // INVALID ACTION OR MISSING DATA
-    else {
-        if ($debug) {
-            error_log("INVALID ACTION OR MISSING DATA");
-            error_log("Available POST keys: " . implode(', ', array_keys($_POST)));
-            error_log("Has category_id: " . (isset($_POST['category_id']) ? 'YES (' . $_POST['category_id'] . ')' : 'NO'));
-            error_log("Has name: " . (isset($_POST['name']) ? 'YES (' . $_POST['name'] . ')' : 'NO'));
-            error_log("Has add_category: " . (isset($_POST['add_category']) ? 'YES' : 'NO'));
-            error_log("Has edit_category: " . (isset($_POST['edit_category']) ? 'YES' : 'NO'));
-            error_log("Has delete_category: " . (isset($_POST['delete_category']) ? 'YES' : 'NO'));
-        }
-        $error = 'Thao tác không hợp lệ hoặc thiếu dữ liệu!';
-    }
 }
 
-// Handle success messages from redirects
+// Handle success messages
 if (isset($_GET['success'])) {
     switch ($_GET['success']) {
         case 'add':
@@ -304,89 +251,175 @@ if (isset($_GET['success'])) {
     }
 }
 
-// Get filter parameters
+// Get filter parameters - FIX THIS SECTION
 $search = trim($_GET['search'] ?? '');
+$page = max(1, (int)($_GET['page'] ?? 1));
 
-// Build query with search
-$sql = "SELECT c.*, COUNT(co.id) as course_count FROM categories c LEFT JOIN courses co ON c.id = co.category_id";
+// Fix limit handling to prevent undefined key and division by zero
+$requested_limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 5;
+$limit = in_array($requested_limit, [5, 10, 20, 50]) ? $requested_limit : 5;
+
+// Ensure limit is never zero or negative
+if ($limit <= 0) {
+    $limit = 5;
+}
+
+$offset = ($page - 1) * $limit;
+
+// Build query for categories with course count
+$where_clause = '';
 $params = [];
 
 if ($search) {
-    $sql .= " WHERE (c.name LIKE ? OR c.description LIKE ?)";
-    $params[] = "%{$search}%";
-    $params[] = "%{$search}%";
+    $where_clause = "WHERE (c.name LIKE ? OR c.description LIKE ?)";
+    $params = ["%$search%", "%$search%"];
 }
 
-$sql .= " GROUP BY c.id ORDER BY c.created_at DESC";
-
+// Get total count
 try {
+    $count_sql = "SELECT COUNT(DISTINCT c.id) FROM categories c $where_clause";
+    $stmt = $pdo->prepare($count_sql);
+    $stmt->execute($params);
+    $total_records = (int)$stmt->fetchColumn();
+    
+    // Ensure total_records is not negative
+    if ($total_records < 0) {
+        $total_records = 0;
+    }
+
+    // Fix division by zero - ensure both values are positive
+    $total_pages = ($total_records > 0 && $limit > 0) ? ceil($total_records / $limit) : 1;
+    
+    // Ensure total_pages is at least 1
+    if ($total_pages < 1) {
+        $total_pages = 1;
+    }
+    
+    // Adjust page if it exceeds total pages
+    if ($page > $total_pages && $total_pages > 0) {
+        $page = $total_pages;
+        $offset = ($page - 1) * $limit;
+    }
+
+    // Get categories with course count - FIX FOR MARIADB
+    $sql = "SELECT c.*, COUNT(co.id) as course_count 
+            FROM categories c 
+            LEFT JOIN courses co ON c.id = co.category_id 
+            $where_clause
+            GROUP BY c.id 
+            ORDER BY c.created_at DESC 
+            LIMIT $offset, $limit";
+
     $stmt = $pdo->prepare($sql);
+    // Don't pass offset and limit as parameters, they're already in SQL
     $stmt->execute($params);
     $categories = $stmt->fetchAll();
+    
+    if ($debug) {
+        error_log("PAGINATION DEBUG: Search='$search', Page=$page, Limit=$limit, Offset=$offset, Total=$total_records, TotalPages=$total_pages");
+        error_log("SQL: $sql");
+        error_log("Execute params: " . print_r($params, true));
+    }
+    
 } catch (PDOException $e) {
     $categories = [];
+    $total_records = 0;
+    $total_pages = 1;
     $error = 'Lỗi database: ' . $e->getMessage();
+    
+    if ($debug) {
+        error_log("DATABASE ERROR: " . $e->getMessage());
+        error_log("SQL that failed: " . ($sql ?? 'N/A'));
+        error_log("Params that failed: " . print_r($execute_params ?? [], true));
+    }
 }
+
+// Ensure all values are valid
+$total_records = max(0, $total_records);
+$total_pages = max(1, $total_pages);
+$page = max(1, min($page, $total_pages));
+$categories = $categories ?: [];
 
 // Get statistics
 try {
-    $stats = $pdo->query("
-        SELECT 
-            (SELECT COUNT(*) FROM categories) as total_categories,
-            (SELECT COUNT(DISTINCT category_id) FROM courses WHERE category_id IS NOT NULL) as categories_with_courses,
-            (SELECT COUNT(*) FROM courses) as total_courses
-    ")->fetch();
-} catch (Exception $e) {
     $stats = [
-        'total_categories' => 0,
-        'categories_with_courses' => 0,
-        'total_courses' => 0
+        'total_categories' => $pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn(),
+        'categories_with_courses' => $pdo->query("SELECT COUNT(DISTINCT category_id) FROM courses WHERE category_id IS NOT NULL")->fetchColumn(),
+        'total_courses' => $pdo->query("SELECT COUNT(*) FROM courses")->fetchColumn()
     ];
+} catch (Exception $e) {
+    $stats = ['total_categories' => 0, 'categories_with_courses' => 0, 'total_courses' => 0];
 }
 
-// Variable for edit mode
-$editCategory = null;
+// Get category for editing
+$edit_category = null;
 if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     try {
         $stmt = $pdo->prepare("SELECT * FROM categories WHERE id = ?");
         $stmt->execute([$_GET['edit']]);
-        $editCategory = $stmt->fetch();
-        if (!$editCategory) {
-            $error = 'Danh mục không tồn tại!';
-        }
+        $edit_category = $stmt->fetch();
     } catch (Exception $e) {
-        $error = 'Lỗi khi tải thông tin danh mục: ' . $e->getMessage();
+        $error = 'Lỗi khi tải thông tin danh mục!';
     }
+}
+
+// Build query string helper - Enhanced with validation
+function build_query($params = [])
+{
+    global $search, $page, $limit, $debug;
+    
+    // Ensure limit has a valid value
+    $safe_limit = isset($limit) && in_array($limit, [5, 10, 20, 50]) ? $limit : 5;
+    
+    $query_params = array_filter([
+        'search' => $search ?: null,
+        'page' => ($page > 1) ? $page : null,
+        'limit' => ($safe_limit != 5) ? $safe_limit : null, // Only include if not default
+        'debug' => $debug ? '1' : null
+    ], function($value) {
+        return $value !== null && $value !== '';
+    });
+    
+    // Merge with additional params
+    $final_params = array_merge($query_params, array_filter($params, function($value) {
+        return $value !== null && $value !== '';
+    }));
+    
+    return http_build_query($final_params);
 }
 ?>
 
 <?php include 'includes/admin-header.php'; ?>
 
-<!-- Debug Mode -->
+<!-- Debug Information -->
 <?php if ($debug): ?>
-    <div class="alert alert-info">
+    <div class="alert alert-info mb-4">
         <h5><i class="fas fa-bug me-2"></i>Debug Mode</h5>
-        <p><strong>Request Method:</strong> <?php echo $_SERVER['REQUEST_METHOD']; ?></p>
-        <p><strong>POST Data:</strong></p>
-        <pre><?php print_r($_POST); ?></pre>
-        <p><strong>GET Data:</strong></p>
-        <pre><?php print_r($_GET); ?></pre>
-        <p><strong>Edit Category:</strong> <?php echo $editCategory ? json_encode($editCategory) : 'null'; ?></p>
-        <p><strong>Message:</strong> <?php echo htmlspecialchars($message); ?></p>
-        <p><strong>Error:</strong> <?php echo htmlspecialchars($error); ?></p>
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Request:</strong> <?php echo $_SERVER['REQUEST_METHOD']; ?></p>
+                <p><strong>POST Data:</strong></p>
+                <pre class="small"><?php print_r($_POST); ?></pre>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Pagination:</strong> Page <?php echo $page; ?>/<?php echo $total_pages; ?></p>
+                <p><strong>Records:</strong> <?php echo count($categories); ?>/<?php echo $total_records; ?></p>
+                <p><strong>Edit Mode:</strong> <?php echo $edit_category ? 'ID ' . $edit_category['id'] : 'No'; ?></p>
+            </div>
+        </div>
     </div>
 <?php endif; ?>
 
 <!-- Success/Error Messages -->
 <?php if ($message): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert alert-success alert-dismissible fade show">
         <i class="fas fa-check-circle me-2"></i><?php echo htmlspecialchars($message); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
 <?php if ($error): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show">
         <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -401,15 +434,11 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
         <p class="text-muted mb-0">Quản lý danh mục khóa học trong hệ thống</p>
     </div>
     <div>
-        <?php if ($debug): ?>
-            <a href="categories.php<?php echo $search ? '?search=' . urlencode($search) : ''; ?>" class="btn btn-outline-secondary">
-                <i class="fas fa-bug-slash me-2"></i>Tắt Debug
-            </a>
-        <?php else: ?>
-            <a href="categories.php?debug=1<?php echo $search ? '&search=' . urlencode($search) : ''; ?>" class="btn btn-outline-info">
-                <i class="fas fa-bug me-2"></i>Debug Mode
-            </a>
-        <?php endif; ?>
+        <a href="categories.php?<?php echo build_query(['debug' => $debug ? null : '1']); ?>"
+            class="btn btn-outline-<?php echo $debug ? 'secondary' : 'info'; ?>">
+            <i class="fas fa-bug<?php echo $debug ? '-slash' : ''; ?> me-2"></i>
+            <?php echo $debug ? 'Tắt' : 'Bật'; ?> Debug
+        </a>
     </div>
 </div>
 
@@ -420,12 +449,8 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            Tổng danh mục
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <?php echo number_format($stats['total_categories']); ?>
-                        </div>
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Tổng danh mục</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo number_format($stats['total_categories']); ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-tags fa-2x text-gray-300"></i>
@@ -440,12 +465,8 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Có khóa học
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <?php echo number_format($stats['categories_with_courses']); ?>
-                        </div>
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Có khóa học</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo number_format($stats['categories_with_courses']); ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
@@ -460,12 +481,8 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                            Tổng khóa học
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <?php echo number_format($stats['total_courses']); ?>
-                        </div>
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tổng khóa học</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo number_format($stats['total_courses']); ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-book fa-2x text-gray-300"></i>
@@ -476,55 +493,54 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     </div>
 </div>
 
-<!-- Add/Edit Category Form -->
+<!-- Add/Edit Form -->
 <div class="card mb-4">
     <div class="card-header">
         <h6 class="m-0 font-weight-bold text-primary">
-            <i class="fas fa-<?php echo $editCategory ? 'edit' : 'plus'; ?> me-2"></i>
-            <?php echo $editCategory ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'; ?>
+            <i class="fas fa-<?php echo $edit_category ? 'edit' : 'plus'; ?> me-2"></i>
+            <?php echo $edit_category ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'; ?>
         </h6>
     </div>
     <div class="card-body">
-        <form method="POST" action="" id="categoryForm">
-            <?php if ($editCategory): ?>
-                <input type="hidden" name="category_id" value="<?php echo $editCategory['id']; ?>">
+        <form method="POST" id="categoryForm">
+            <?php if ($edit_category): ?>
+                <input type="hidden" name="category_id" value="<?php echo $edit_category['id']; ?>">
                 <div class="alert alert-warning">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Đang chỉnh sửa danh mục:</strong> <?php echo htmlspecialchars($editCategory['name']); ?>
-                    (ID: <?php echo $editCategory['id']; ?>)
+                    <strong>Đang chỉnh sửa:</strong> <?php echo htmlspecialchars($edit_category['name']); ?> (ID: <?php echo $edit_category['id']; ?>)
                 </div>
             <?php endif; ?>
 
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="categoryName" class="form-label">Tên danh mục <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="categoryName" name="name" required
-                            placeholder="Nhập tên danh mục..." maxlength="100"
-                            value="<?php echo $editCategory ? htmlspecialchars($editCategory['name']) : ''; ?>">
-                        <div class="form-text">Tên danh mục phải là duy nhất (2-100 ký tự)</div>
+                        <label class="form-label">Tên danh mục <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required maxlength="100"
+                            placeholder="Nhập tên danh mục..."
+                            value="<?php echo $edit_category ? htmlspecialchars($edit_category['name']) : ''; ?>">
+                        <div class="form-text">Tên danh mục phải duy nhất (2-100 ký tự)</div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="categoryDescription" class="form-label">Mô tả</label>
-                        <textarea class="form-control" id="categoryDescription" name="description" rows="3"
-                            placeholder="Nhập mô tả cho danh mục..." maxlength="500"><?php echo $editCategory ? htmlspecialchars($editCategory['description']) : ''; ?></textarea>
-                        <div class="form-text">Mô tả ngắn gọn về danh mục này (tối đa 500 ký tự)</div>
+                        <label class="form-label">Mô tả</label>
+                        <textarea name="description" class="form-control" rows="3" maxlength="500"
+                            placeholder="Nhập mô tả cho danh mục..."><?php echo $edit_category ? htmlspecialchars($edit_category['description']) : ''; ?></textarea>
+                        <div class="form-text">Mô tả ngắn gọn (tối đa 500 ký tự)</div>
                     </div>
                 </div>
             </div>
 
             <div class="text-end">
-                <?php if ($editCategory): ?>
-                    <a href="categories.php" class="btn btn-secondary me-2">
+                <?php if ($edit_category): ?>
+                    <a href="categories.php?<?php echo build_query(['edit' => null]); ?>" class="btn btn-secondary me-2">
                         <i class="fas fa-times me-2"></i>Hủy
                     </a>
-                    <button type="submit" name="edit_category" value="1" class="btn btn-warning" id="editBtn">
-                        <i class="fas fa-save me-2"></i>Cập nhật danh mục
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save me-2"></i>Cập nhật
                     </button>
                 <?php else: ?>
-                    <button type="submit" name="add_category" value="1" class="btn btn-primary" id="addBtn">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-2"></i>Thêm danh mục
                     </button>
                 <?php endif; ?>
@@ -533,7 +549,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     </div>
 </div>
 
-<!-- Search Filter -->
+<!-- Search -->
 <div class="card mb-4">
     <div class="card-header">
         <h6 class="m-0 font-weight-bold text-primary">
@@ -542,9 +558,8 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     </div>
     <div class="card-body">
         <form method="GET" class="row g-3">
-            <?php if ($debug): ?>
-                <input type="hidden" name="debug" value="1">
-            <?php endif; ?>
+            <?php if ($debug): ?><input type="hidden" name="debug" value="1"><?php endif; ?>
+            <input type="hidden" name="limit" value="<?php echo $limit; ?>">
             <div class="col-md-9">
                 <input type="text" name="search" class="form-control"
                     placeholder="Nhập tên hoặc mô tả danh mục..."
@@ -556,9 +571,11 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 </button>
             </div>
         </form>
+
         <?php if ($search): ?>
             <div class="mt-2">
-                <a href="categories.php<?php echo $debug ? '?debug=1' : ''; ?>" class="btn btn-outline-secondary btn-sm">
+                <a href="categories.php?<?php echo build_query(['search' => null, 'page' => null]); ?>"
+                    class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-times me-1"></i>Xóa bộ lọc
                 </a>
                 <span class="text-muted ms-2">Tìm kiếm: "<strong><?php echo htmlspecialchars($search); ?></strong>"</span>
@@ -591,36 +608,31 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                     </thead>
                     <tbody>
                         <?php foreach ($categories as $index => $category): ?>
-                            <tr <?php if ($editCategory && $editCategory['id'] == $category['id']) echo 'class="table-warning"'; ?>>
-                                <td><?php echo $index + 1; ?></td>
+                            <tr <?php if ($edit_category && $edit_category['id'] == $category['id']) echo 'class="table-warning"'; ?>>
+                                <td><?php echo $offset + $index + 1; ?></td>
                                 <td>
-                                    <div>
-                                        <strong class="text-primary"><?php echo htmlspecialchars($category['name']); ?></strong>
-                                        <br>
-                                        <small class="text-muted">
-                                            <i class="fas fa-hashtag me-1"></i>ID: <?php echo $category['id']; ?>
-                                            <?php if (!empty($category['slug'])): ?>
-                                                | <i class="fas fa-link me-1"></i><?php echo htmlspecialchars($category['slug']); ?>
-                                            <?php endif; ?>
-                                        </small>
-                                    </div>
+                                    <strong class="text-primary"><?php echo htmlspecialchars($category['name']); ?></strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        ID: <?php echo $category['id']; ?>
+                                        <?php if ($category['slug']): ?>
+                                            | <?php echo htmlspecialchars($category['slug']); ?>
+                                        <?php endif; ?>
+                                    </small>
                                 </td>
                                 <td>
-                                    <?php
-                                    $desc = $category['description'];
-                                    if ($desc) {
-                                        echo '<p class="mb-0 text-muted">' . htmlspecialchars(mb_substr($desc, 0, 100)) . (mb_strlen($desc) > 100 ? '...' : '') . '</p>';
-                                    } else {
-                                        echo '<em class="text-muted">Chưa có mô tả</em>';
-                                    }
-                                    ?>
+                                    <?php if ($category['description']): ?>
+                                        <p class="mb-0 text-muted">
+                                            <?php echo htmlspecialchars(mb_substr($category['description'], 0, 100)); ?>
+                                            <?php if (mb_strlen($category['description']) > 100) echo '...'; ?>
+                                        </p>
+                                    <?php else: ?>
+                                        <em class="text-muted">Chưa có mô tả</em>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-center">
                                     <?php if ($category['course_count'] > 0): ?>
-                                        <a href="courses.php?category_id=<?php echo $category['id']; ?>"
-                                            class="badge bg-info fs-6 text-decoration-none">
-                                            <?php echo number_format($category['course_count']); ?>
-                                        </a>
+                                        <span class="badge bg-info fs-6"><?php echo $category['course_count']; ?></span>
                                     <?php else: ?>
                                         <span class="badge bg-secondary fs-6">0</span>
                                     <?php endif; ?>
@@ -631,18 +643,18 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                     </small>
                                 </td>
                                 <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="categories.php?edit=<?php echo $category['id']; ?><?php echo $debug ? '&debug=1' : ''; ?>"
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="categories.php?<?php echo build_query(['edit' => $category['id']]); ?>"
                                             class="btn btn-outline-primary btn-sm" title="Chỉnh sửa">
                                             <i class="fas fa-edit"></i>
                                         </a>
+
                                         <?php if ($category['course_count'] == 0): ?>
-                                            <form method="POST" action="categories.php<?php echo $debug ? '?debug=1' : ''; ?>" style="display: inline;" class="delete-form"
-                                                data-category-name="<?php echo htmlspecialchars($category['name']); ?>"
-                                                data-category-id="<?php echo $category['id']; ?>">
+                                            <form method="POST" style="display: inline;" class="delete-form"
+                                                data-name="<?php echo htmlspecialchars($category['name']); ?>">
                                                 <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
                                                 <input type="hidden" name="delete_category" value="1">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa danh mục">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
@@ -660,24 +672,98 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 </table>
             </div>
 
-            <!-- Summary -->
+            <!-- Pagination Info -->
             <div class="mt-3">
                 <div class="row align-items-center">
                     <div class="col-md-6">
                         <small class="text-muted">
                             Hiển thị <?php echo count($categories); ?> danh mục
+                            (<?php echo number_format($offset + 1); ?> - <?php echo number_format($offset + count($categories)); ?>
+                            trong tổng số <?php echo number_format($total_records); ?>)
                             <?php if ($search): ?>
                                 với từ khóa "<strong><?php echo htmlspecialchars($search); ?></strong>"
                             <?php endif; ?>
                         </small>
                     </div>
                     <div class="col-md-6 text-end">
-                        <small class="text-muted">
-                            Tổng cộng: <?php echo number_format($stats['total_categories']); ?> danh mục
-                        </small>
+                        <small class="text-muted">Trang <?php echo $page; ?> / <?php echo $total_pages; ?></small>
                     </div>
                 </div>
             </div>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+                <div class="d-flex justify-content-center mt-4">
+                    <nav>
+                        <ul class="pagination pagination-sm">
+                            <!-- Previous -->
+                            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                <?php if ($page > 1): ?>
+                                    <a class="page-link" href="?<?php echo build_query(['page' => $page - 1]); ?>">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                                <?php endif; ?>
+                            </li>
+
+                            <!-- Page Numbers -->
+                            <?php
+                            $start_page = max(1, $page - 2);
+                            $end_page = min($total_pages, $page + 2);
+
+                            // First page
+                            if ($start_page > 1) {
+                                echo '<li class="page-item"><a class="page-link" href="?' . build_query(['page' => 1]) . '">1</a></li>';
+                                if ($start_page > 2) {
+                                    echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                }
+                            }
+
+                            // Current range
+                            for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                    <a class="page-link" href="?<?php echo build_query(['page' => $i]); ?>"><?php echo $i; ?></a>
+                                </li>
+                            <?php endfor;
+
+                            // Last page
+                            if ($end_page < $total_pages) {
+                                if ($end_page < $total_pages - 1) {
+                                    echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                }
+                                echo '<li class="page-item"><a class="page-link" href="?' . build_query(['page' => $total_pages]) . '">' . $total_pages . '</a></li>';
+                            }
+                            ?>
+
+                            <!-- Next -->
+                            <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
+                                <?php if ($page < $total_pages): ?>
+                                    <a class="page-link" href="?<?php echo build_query(['page' => $page + 1]); ?>">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                                <?php endif; ?>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+
+                <!-- Page Size Selector -->
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        Hiển thị
+                        <select id="pageSize" class="form-select form-select-sm d-inline-block" style="width: auto;">
+                            <option value="5" <?php echo $limit == 5 ? 'selected' : ''; ?>>5</option>
+                            <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10</option>
+                            <option value="20" <?php echo $limit == 20 ? 'selected' : ''; ?>>20</option>
+                            <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50</option>
+                        </select>
+                        bản ghi mỗi trang
+                    </small>
+                </div>
+            <?php endif; ?>
 
         <?php else: ?>
             <div class="text-center py-5">
@@ -685,7 +771,8 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                 <h4 class="text-muted">Không tìm thấy danh mục nào</h4>
                 <p class="text-muted mb-4">
                     <?php if ($search): ?>
-                        Thử thay đổi từ khóa tìm kiếm hoặc <a href="categories.php<?php echo $debug ? '?debug=1' : ''; ?>" class="text-decoration-none">xem tất cả danh mục</a>
+                        Thử thay đổi từ khóa tìm kiếm hoặc
+                        <a href="categories.php?<?php echo build_query(['search' => null, 'page' => null]); ?>">xem tất cả danh mục</a>
                     <?php else: ?>
                         Hệ thống chưa có danh mục nào. Hãy tạo danh mục đầu tiên!
                     <?php endif; ?>
@@ -695,137 +782,105 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     </div>
 </div>
 
-<!-- Custom CSS -->
 <style>
     .border-left-primary {
         border-left: 0.25rem solid #4e73df !important;
     }
+
     .border-left-success {
         border-left: 0.25rem solid #1cc88a !important;
     }
+
     .border-left-info {
         border-left: 0.25rem solid #36b9cc !important;
     }
+
     .table th {
         border-top: none;
         font-weight: 600;
-        text-transform: uppercase;
         font-size: 0.85rem;
         color: #5a5c69;
-        background-color: #f8f9fc !important;
     }
-    .btn-group-sm>.btn {
-        margin: 0 1px;
-    }
+
     .table tbody tr:hover {
         background-color: #f8f9fc;
     }
+
     .table-warning {
         background-color: #fff3cd !important;
     }
-    .alert {
-        border: none;
-        border-radius: 0.5rem;
-    }
+
     .card {
         border: none;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
     }
-</style>
 
-<!-- JavaScript -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-hide alerts after 5 seconds
-    setTimeout(() => {
-        document.querySelectorAll('.alert:not(.alert-info)').forEach(alert => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        });
-    }, 5000);
-
-    // Form validation - FIX để không chặn submit
-    const form = document.getElementById('categoryForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const nameInput = this.querySelector('input[name="name"]');
-            const name = nameInput.value.trim();
-
-            // Only prevent if validation fails
-            if (!name) {
-                e.preventDefault();
-                alert('Vui lòng nhập tên danh mục!');
-                nameInput.focus();
-                return false;
-            }
-
-            if (name.length < 2) {
-                e.preventDefault();
-                alert('Tên danh mục phải có ít nhất 2 ký tự!');
-                nameInput.focus();
-                return false;
-            }
-
-            // Don't prevent default - let form submit naturally
-            console.log('📤 Form validation passed, submitting...');
-            
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
-            }
-            
-            // Form will submit naturally
-            return true;
-        });
+    .pagination .page-item.active .page-link {
+        background-color: #4e73df;
+        border-color: #4e73df;
     }
 
-    // Delete confirmation
-    document.querySelectorAll('.delete-form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const categoryName = this.dataset.categoryName;
-            const confirmed = confirm(`⚠️ XÁC NHẬN XÓA\n\nBạn có chắc chắn muốn xóa danh mục:\n📁 ${categoryName}\n\n❌ Thao tác này không thể hoàn tác!\n\n🔄 Nhấn OK để xóa, Cancel để hủy.`);
-            
-            if (confirmed) {
-                // Show loading on delete button
-                const deleteBtn = this.querySelector('button[name="delete_category"]');
-                if (deleteBtn) {
-                    deleteBtn.disabled = true;
-                    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                }
-                
-                // Submit form
-                this.submit();
+    .pagination .page-link {
+        color: #5a5c69;
+        border: 1px solid #dddfeb;
+    }
+
+    .pagination .page-link:hover {
+        color: #224abe;
+        background-color: #eaecf4;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-hide alerts
+        setTimeout(() => {
+            document.querySelectorAll('.alert:not(.alert-info)').forEach(alert => {
+                new bootstrap.Alert(alert).close();
+            });
+        }, 5000);
+
+        // Form validation
+        document.getElementById('categoryForm')?.addEventListener('submit', function(e) {
+            const name = this.querySelector('[name="name"]').value.trim();
+            if (!name || name.length < 2) {
+                e.preventDefault();
+                alert('Tên danh mục phải có ít nhất 2 ký tự!');
+                return false;
             }
+
+            // Show loading
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
         });
+
+        // Delete confirmation
+        document.querySelectorAll('.delete-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = this.dataset.name;
+                if (confirm(`⚠️ Xác nhận xóa danh mục "${name}"?\n\nThao tác này không thể hoàn tác!`)) {
+                    this.submit();
+                }
+            });
+        });
+
+        // Page size selector
+        document.getElementById('pageSize')?.addEventListener('change', function() {
+            const url = new URL(window.location);
+            url.searchParams.set('limit', this.value);
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
+        });
+
+        // Focus edit form
+        <?php if ($edit_category): ?>
+            document.querySelector('[name="name"]')?.focus();
+        <?php endif; ?>
+
+        console.log('✅ Categories page loaded - Total: <?php echo $total_records; ?>, Current: <?php echo count($categories); ?>');
     });
-
-    // Search on Enter key
-    document.querySelector('input[name="search"]')?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            this.form.submit();
-        }
-    });
-
-    // Focus on name input if in edit mode
-    <?php if ($editCategory): ?>
-        const nameInput = document.getElementById('categoryName');
-        if (nameInput) {
-            nameInput.focus();
-            nameInput.select();
-        }
-    <?php endif; ?>
-
-    console.log('✅ Categories page loaded successfully!');
-    console.log('📊 Statistics:', <?php echo json_encode($stats); ?>);
-    console.log('📋 Categories loaded:', <?php echo count($categories); ?>);
-    <?php if ($editCategory): ?>
-        console.log('✏️ Edit mode for category ID:', <?php echo $editCategory['id']; ?>);
-    <?php endif; ?>
-});
 </script>
 
 <?php include 'includes/admin-footer.php'; ?>
