@@ -49,10 +49,7 @@ function sanitize($data)
     return htmlspecialchars(strip_tags(trim($data)));
 }
 
-function formatPrice($price)
-{
-    return $price == 0 ? 'Miễn phí' : number_format($price) . ' ₫';
-}
+
 
 function isEnrolled($user_id, $course_id, $pdo)
 {
@@ -60,4 +57,15 @@ function isEnrolled($user_id, $course_id, $pdo)
     $stmt->execute([$user_id, $course_id]);
     return $stmt->fetchColumn() !== false;
 }
+
+
+// Add this function at the end of the file
+
+function formatPrice($price) {
+    if ($price == 0) {
+        return '<span class="text-success">Miễn phí</span>';
+    }
+    return number_format($price) . ' VNĐ';
+}
+
 ?>
