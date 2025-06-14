@@ -287,102 +287,300 @@ $current_page = 'dashboard';
 
 <!-- Custom CSS -->
 <style>
+    /* === DASHBOARD SPECIFIC STYLES === */
     .course-row {
-        transition: background-color 0.2s ease;
+        transition: all 0.3s ease;
+        cursor: pointer;
     }
 
     .course-row:hover {
         background-color: #f8f9fc !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
 
     .course-title-link {
         font-weight: 600;
-        transition: color 0.2s ease;
+        transition: all 0.3s ease;
+        text-decoration: none !important;
     }
 
     .course-title-link:hover {
         color: #224abe !important;
-        text-decoration: none !important;
     }
 
+    /* === CARDS STYLING === */
     .card {
         border: none;
+        border-radius: 1rem;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        transition: all 0.3s ease;
+        overflow: hidden;
     }
 
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
+    }
+
+    /* === BORDER LEFT CARDS === */
     .border-left-primary {
-        border-left: 0.25rem solid #4e73df !important;
+        border-left: 0.375rem solid #6366f1 !important;
+        background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
     }
 
     .border-left-success {
-        border-left: 0.25rem solid #1cc88a !important;
+        border-left: 0.375rem solid #10b981 !important;
+        background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
     }
 
     .border-left-warning {
-        border-left: 0.25rem solid #f6c23e !important;
+        border-left: 0.375rem solid #f59e0b !important;
+        background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
     }
 
     .border-left-danger {
-        border-left: 0.25rem solid #e74a3b !important;
+        border-left: 0.375rem solid #ef4444 !important;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
     }
 
+    /* === COLOR SCHEME === */
     .text-primary {
-        color: #4e73df !important;
+        color: #6366f1 !important;
     }
 
     .text-success {
-        color: #1cc88a !important;
+        color: #10b981 !important;
     }
 
     .text-warning {
-        color: #f6c23e !important;
+        color: #f59e0b !important;
     }
 
     .text-danger {
-        color: #e74a3b !important;
+        color: #ef4444 !important;
+    }
+
+    .fa-users {
+        color: #6366f1 !important;
+    }
+
+    .fa-book {
+        color: #10b981 !important;
+    }
+
+    .fa-play-circle {
+        color: #f59e0b !important;
+    }
+
+    .fa-user-graduate {
+        color: #ef4444 !important;
+    }
+
+    /* === TABLE STYLING === */
+    .table {
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border: none;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        padding: 1.25rem 1rem;
+        text-align: center !important;
+        vertical-align: middle !important;
+        position: relative;
+    }
+
+    .table thead th::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #6366f1, transparent);
+        border-radius: 1px;
+    }
+
+    .table thead th:first-child {
+        text-align: left !important;
+    }
+
+    .table thead th:first-child::after {
+        left: 1rem;
+        transform: none;
+        width: 30%;
+    }
+
+    .table tbody td {
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 1.25rem 1rem;
+        vertical-align: middle;
+        text-align: center !important;
+        transition: all 0.3s ease;
+    }
+
+    .table tbody td:first-child {
+        text-align: left !important;
+        font-weight: 600;
+    }
+
+    .table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* === BADGES === */
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        letter-spacing: 0.025em;
     }
 
     .badge-secondary {
-        background-color: #6c757d;
+        background: linear-gradient(135deg, #64748b, #475569);
         color: #fff;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.75rem;
+        border: none;
     }
 
     .badge-primary {
-        background-color: #4e73df;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
         color: #fff;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.75rem;
+        border: none;
     }
 
     .badge-danger {
-        background-color: #e74a3b;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
         color: #fff;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
+        border: none;
+    }
+
+    /* === BUTTONS === */
+    .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 1.5px solid transparent;
+    }
+
+    .btn-outline-primary {
+        color: #6366f1;
+        border-color: #6366f1;
+        background: transparent;
+    }
+
+    .btn-outline-primary:hover {
+        background: #6366f1;
+        border-color: #6366f1;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-outline-info {
+        color: #06b6d4;
+        border-color: #06b6d4;
+    }
+
+    .btn-outline-info:hover {
+        background: #06b6d4;
+        border-color: #06b6d4;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+    }
+
+    /* === STATISTICS CARDS === */
+    .text-xs {
         font-size: 0.75rem;
-    }
-
-    .table th {
-        border-top: none;
-        border-bottom: 1px solid #e3e6f0;
         font-weight: 600;
-        font-size: 0.8rem;
-        color: #5a5c69;
-        padding: 1rem 0.75rem;
+        letter-spacing: 0.05em;
     }
 
-    .table td {
-        border-top: 1px solid #e3e6f0;
-        padding: 1rem 0.75rem;
-        vertical-align: middle;
+    .h5 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0;
     }
 
+    .fa-2x {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+
+    /* === USER CARDS === */
     .bg-light {
-        background-color: #f8f9fc !important;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .bg-light:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+        .table thead th {
+            padding: 1rem 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .table tbody td {
+            padding: 1rem 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .h5 {
+            font-size: 1.5rem;
+        }
+
+        .fa-2x {
+            font-size: 2rem;
+        }
+    }
+
+    /* === ANIMATIONS === */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .card {
+        animation: fadeInUp 0.6s ease forwards;
+    }
+
+    .card:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+
+    .card:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .card:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+
+    .card:nth-child(4) {
+        animation-delay: 0.4s;
     }
 </style>
 

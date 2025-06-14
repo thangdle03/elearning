@@ -881,6 +881,7 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
         border-left: 0.25rem solid #f6c23e !important;
     }
 
+    /* === TABLE HEADERS CENTERED === */
     .table th {
         border-top: none;
         font-weight: 600;
@@ -889,8 +890,16 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
         vertical-align: middle;
         white-space: nowrap;
         padding: 12px 8px;
+        text-align: center !important; /* Căn giữa tiêu đề */
     }
 
+    /* Chỉ cột đầu tiên (checkbox) và cột thứ 3 (Thông tin) căn trái */
+    .table th:first-child,
+    .table th:nth-child(3) {
+        text-align: left !important;
+    }
+
+    /* === TABLE BODY CELLS === */
     .table tbody tr:hover {
         background-color: #f8f9fc;
     }
@@ -898,14 +907,39 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
     .table td {
         vertical-align: middle;
         padding: 12px 8px;
+        text-align: center !important; /* Căn giữa nội dung */
     }
 
+    /* Các cột cụ thể căn trái */
+    .table td:first-child,
+    .table td:nth-child(3) {
+        text-align: left !important;
+    }
+
+    /* === FIX TRẠNG THÁI 1 DÒNG === */
+    .table td:nth-child(8) { /* Cột Trạng thái */
+        white-space: nowrap !important;
+        min-width: 110px !important;
+    }
+
+    .table td:nth-child(8) .btn {
+        font-size: 0.75rem !important;
+        padding: 0.375rem 0.75rem !important;
+        white-space: nowrap !important;
+        min-width: 85px !important;
+    }
+
+    .table td:nth-child(8) .btn i {
+        margin-right: 0.25rem !important;
+    }
+
+    /* === CARD STYLING === */
     .card {
         border: none;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
     }
 
-    /* Fixed Pagination Styles */
+    /* === PAGINATION STYLES === */
     .pagination {
         margin-bottom: 0;
     }
@@ -947,7 +981,7 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
         border-bottom-right-radius: 0.35rem;
     }
 
-    /* Fix for Page Size Selector - prevent overlapping */
+    /* === PAGE SIZE SELECTOR === */
     .form-select-sm {
         padding: 0.25rem 1.75rem 0.25rem 0.5rem !important;
         font-size: 0.875rem;
@@ -957,7 +991,6 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
         flex-shrink: 0;
     }
 
-    /* Ensure proper spacing for the pagination controls */
     .d-flex.align-items-center {
         white-space: nowrap;
     }
@@ -970,15 +1003,36 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
         margin-right: 0;
     }
 
-    /* Alternative: Use flexbox gap if supported */
     .gap-2 {
         gap: 0.5rem !important;
     }
 
-    /* Ensure text doesn't wrap */
     .text-muted {
         white-space: nowrap;
         flex-shrink: 0;
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+        .table th {
+            font-size: 0.75rem;
+            padding: 8px 4px;
+        }
+        
+        .table td {
+            font-size: 0.85rem;
+            padding: 8px 4px;
+        }
+        
+        .table td:nth-child(8) .btn {
+            font-size: 0.7rem !important;
+            padding: 0.25rem 0.5rem !important;
+            min-width: 70px !important;
+        }
+        
+        .table td:nth-child(8) {
+            min-width: 80px !important;
+        }
     }
 </style>
 
