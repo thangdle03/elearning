@@ -5,7 +5,7 @@ require_once 'includes/config.php';
 // Redirect if already logged in
 if (isLoggedIn()) {
     if (isAdmin()) {
-        redirect(SITE_URL . '/admin/');
+        redirect(SITE_URL . '/admin/dashboard.php');
     } else {
         redirect(SITE_URL . '/my-courses.php');
     }

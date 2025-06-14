@@ -589,14 +589,40 @@ function build_query($params = [])
                             <tr <?php if ($edit_category && $edit_category['id'] == $category['id']) echo 'class="table-warning"'; ?>>
                                 <td><?php echo $offset + $index + 1; ?></td>
                                 <td>
-                                    <strong class="text-primary"><?php echo htmlspecialchars($category['name']); ?></strong>
-                                    <br>
-                                    <small class="text-muted">
-                                        ID: <?php echo $category['id']; ?>
-                                        <?php if ($category['slug']): ?>
-                                            | <?php echo htmlspecialchars($category['slug']); ?>
+                                    <div class="d-flex align-items-center">
+                                        <?php if (!empty($category['icon'])): ?>
+                                            <i class="<?php echo htmlspecialchars($category['icon']); ?> fa-2x text-primary me-3"></i>
+                                        <?php else: ?>
+                                            <div class="category-placeholder me-3">
+                                                <i class="fas fa-folder fa-2x text-muted"></i>
+                                            </div>
                                         <?php endif; ?>
-                                    </small>
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <!-- Simple direct link -->
+                                                <a href="category-detail.php?id=<?php echo $category['id']; ?>" 
+                                                   class="text-primary text-decoration-none fw-bold">
+                                                    <?php echo htmlspecialchars($category['name']); ?>
+                                                </a>
+                                            </h6>
+                                            <?php if (!empty($category['description'])): ?>
+                                                <p class="mb-1 text-muted small">
+                                                    <?php echo htmlspecialchars(mb_substr($category['description'], 0, 80)); ?>
+                                                    <?php if (mb_strlen($category['description']) > 80) echo '...'; ?>
+                                                </p>
+                                            <?php endif; ?>
+                                            <small class="text-muted">
+                                                ID: <?php echo $category['id']; ?>
+                                                | <i class="fas fa-calendar me-1"></i>
+                                                <?php echo date('d/m/Y', strtotime($category['created_at'])); ?>
+                                                <!-- Add direct test link -->
+                                                | <a href="category-detail.php?id=<?php echo $category['id']; ?>" 
+                                                     class="btn btn-xs btn-info ms-2" style="font-size: 10px; padding: 2px 6px;">
+                                                    Chi tiết
+                                                </a>
+                                            </small>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     <?php if ($category['description']): ?>
@@ -859,6 +885,23 @@ function build_query($params = [])
 
         console.log('✅ Categories page loaded - Total: <?php echo $total_records; ?>, Current: <?php echo count($categories); ?>');
     });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Debug all category links
+    const categoryLinks = document.querySelectorAll('a[href*="category-detail.php"]');
+    console.log('Found category links:', categoryLinks.length);
+    
+    categoryLinks.forEach((link, index) => {
+        console.log(`Link ${index + 1}:`, link.href);
+        
+        link.addEventListener('click', function(e) {
+            console.log('Clicked category link:', this.href);
+            // Don't prevent default - let it navigate
+        });
+    });
+});
 </script>
 
 <?php include 'includes/admin-footer.php'; ?>

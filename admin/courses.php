@@ -658,19 +658,26 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
                                             class="rounded" style="width: 60px; height: 45px; object-fit: cover;">
                                     </td>
                                     <td>
-                                        <div>
-                                            <h6 class="mb-1">
-                                                <strong class="text-primary"><?php echo htmlspecialchars($course['title']); ?></strong>
-                                            </h6>
-                                            <p class="mb-1 text-muted small">
-                                                <?php echo htmlspecialchars(mb_substr($course['description'], 0, 80)); ?>
-                                                <?php if (mb_strlen($course['description']) > 80) echo '...'; ?>
-                                            </p>
-                                            <small class="text-muted">
-                                                ID: <?php echo $course['id']; ?>
-                                                | <i class="fas fa-calendar me-1"></i>
-                                                <?php echo date('d/m/Y', strtotime($course['created_at'])); ?>
-                                            </small>
+                                        <div class="d-flex align-items-center">
+                                            <?php if (!empty($course['thumbnail'])): ?>
+                                                <img src="<?php echo htmlspecialchars($course['thumbnail']); ?>"
+                                                    alt="" class="rounded me-3" style="width: 50px; height: 35px; object-fit: cover;">
+                                            <?php else: ?>
+                                                <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center"
+                                                    style="width: 50px; height: 35px;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            <?php endif; ?>
+                                            <div>
+                                                <!-- Thêm link vào title -->
+                                                <h6 class="mb-0">
+                                                    <a href="course-detail.php?id=<?php echo $course['id']; ?>"
+                                                        class="text-decoration-none text-primary fw-bold">
+                                                        <?php echo htmlspecialchars($course['title']); ?>
+                                                    </a>
+                                                </h6>
+                                                <small class="text-muted"><?php echo htmlspecialchars($course['category_name'] ?? 'Chưa phân loại'); ?></small>
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="text-center">
@@ -704,14 +711,17 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
                                         </form>
                                     </td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
+                                        <div class="btn-group" role="group" aria-label="Course actions">
+                                            <a href="course-detail.php?id=<?php echo $course['id']; ?>"
+                                                class="btn btn-sm btn-outline-info" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
                                             <a href="edit-course.php?id=<?php echo $course['id']; ?>"
-                                                class="btn btn-outline-primary btn-sm" title="Chỉnh sửa">
+                                                class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button type="button" class="btn btn-outline-danger btn-sm"
-                                                onclick="deleteCourse(<?php echo $course['id']; ?>, '<?php echo addslashes($course['title']); ?>')"
-                                                title="Xóa" <?php echo $course['enrollment_count'] > 0 ? 'disabled' : ''; ?>>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteCourse(<?php echo $course['id']; ?>)" title="Xóa">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -727,8 +737,8 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
                     <!-- Left: Record Info -->
                     <div>
                         <small class="text-muted">
-                            Hiển thị <?php echo count($courses); ?> danh mục 
-                            (<?php echo number_format($offset + 1); ?> - <?php echo number_format($offset + count($courses)); ?> 
+                            Hiển thị <?php echo count($courses); ?> danh mục
+                            (<?php echo number_format($offset + 1); ?> - <?php echo number_format($offset + count($courses)); ?>
                             trong tổng số <?php echo number_format($total_records); ?>)
                         </small>
                     </div>
@@ -899,7 +909,7 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
     .pagination {
         margin-bottom: 0;
     }
-    
+
     .pagination .page-item.active .page-link {
         background-color: #4e73df;
         border-color: #4e73df;
@@ -952,11 +962,11 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
         white-space: nowrap;
     }
 
-    .d-flex.align-items-center .gap-2 > * {
+    .d-flex.align-items-center .gap-2>* {
         margin-right: 0.5rem;
     }
 
-    .d-flex.align-items-center .gap-2 > *:last-child {
+    .d-flex.align-items-center .gap-2>*:last-child {
         margin-right: 0;
     }
 
@@ -973,156 +983,156 @@ $has_filters = !empty($search) || !empty($category_filter) || !empty($status_fil
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-hide alerts
-    setTimeout(() => {
-        document.querySelectorAll('.alert:not(.alert-info)').forEach(alert => {
-            new bootstrap.Alert(alert).close();
-        });
-    }, 5000);
-
-    // Get elements
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const courseCheckboxes = document.querySelectorAll('.course-checkbox');
-    const bulkButtons = document.querySelectorAll('[id^="bulk"]');
-    
-    // Select all functionality
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            courseCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-hide alerts
+        setTimeout(() => {
+            document.querySelectorAll('.alert:not(.alert-info)').forEach(alert => {
+                new bootstrap.Alert(alert).close();
             });
-            updateBulkButtons();
-        });
-    }
+        }, 5000);
 
-    // Individual checkbox change
-    courseCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            updateSelectAllState();
-            updateBulkButtons();
+        // Get elements
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const courseCheckboxes = document.querySelectorAll('.course-checkbox');
+        const bulkButtons = document.querySelectorAll('[id^="bulk"]');
+
+        // Select all functionality
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                courseCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateBulkButtons();
+            });
+        }
+
+        // Individual checkbox change
+        courseCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectAllState();
+                updateBulkButtons();
+            });
         });
+
+        // Page size selector
+        const pageSizeSelect = document.getElementById('pageSize');
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', function() {
+                const url = new URL(window.location);
+                url.searchParams.set('limit', this.value);
+                url.searchParams.set('page', '1'); // Reset to first page
+                window.location.href = url.toString();
+            });
+        }
+
+        // Initial state
+        updateBulkButtons();
     });
 
-    // Page size selector
-    const pageSizeSelect = document.getElementById('pageSize');
-    if (pageSizeSelect) {
-        pageSizeSelect.addEventListener('change', function() {
-            const url = new URL(window.location);
-            url.searchParams.set('limit', this.value);
-            url.searchParams.set('page', '1'); // Reset to first page
-            window.location.href = url.toString();
+    // Update select all checkbox state
+    function updateSelectAllState() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (!selectAllCheckbox) return;
+
+        const courseCheckboxes = document.querySelectorAll('.course-checkbox');
+        const checkedCount = document.querySelectorAll('.course-checkbox:checked').length;
+        const totalCount = courseCheckboxes.length;
+
+        if (checkedCount === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        } else if (checkedCount === totalCount) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.indeterminate = true;
+            selectAllCheckbox.checked = false;
+        }
+    }
+
+    // Update bulk action buttons
+    function updateBulkButtons() {
+        const checkedBoxes = document.querySelectorAll('.course-checkbox:checked');
+        const bulkButtons = document.querySelectorAll('[id^="bulk"]');
+
+        if (checkedBoxes.length > 0) {
+            bulkButtons.forEach(btn => btn.style.display = 'inline-block');
+        } else {
+            bulkButtons.forEach(btn => btn.style.display = 'none');
+        }
+    }
+
+    // Perform bulk action
+    function performBulkAction(action) {
+        const checkedBoxes = document.querySelectorAll('.course-checkbox:checked');
+
+        if (checkedBoxes.length === 0) {
+            alert('Vui lòng chọn ít nhất một khóa học!');
+            return;
+        }
+
+        // Confirmation messages
+        const messages = {
+            'activate': `Bạn có chắc muốn kích hoạt ${checkedBoxes.length} khóa học đã chọn?`,
+            'deactivate': `Bạn có chắc muốn vô hiệu hóa ${checkedBoxes.length} khóa học đã chọn?`,
+            'delete': `Bạn có chắc muốn XÓA ${checkedBoxes.length} khóa học đã chọn?\n\nCảnh báo: Chỉ xóa được khóa học chưa có học viên!`
+        };
+
+        if (!confirm(messages[action])) {
+            return;
+        }
+
+        // Prepare form
+        const form = document.getElementById('bulkActionForm');
+        const actionInput = document.getElementById('bulkActionInput');
+        const container = document.getElementById('selectedCoursesContainer');
+
+        // Set action
+        actionInput.value = action;
+
+        // Clear previous inputs
+        container.innerHTML = '';
+
+        // Add selected course IDs
+        checkedBoxes.forEach(checkbox => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_courses[]';
+            input.value = checkbox.value;
+            container.appendChild(input);
         });
+
+        // Submit form
+        form.submit();
     }
 
-    // Initial state
-    updateBulkButtons();
-});
-
-// Update select all checkbox state
-function updateSelectAllState() {
-    const selectAllCheckbox = document.getElementById('selectAll');
-    if (!selectAllCheckbox) return;
-
-    const courseCheckboxes = document.querySelectorAll('.course-checkbox');
-    const checkedCount = document.querySelectorAll('.course-checkbox:checked').length;
-    const totalCount = courseCheckboxes.length;
-
-    if (checkedCount === 0) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = false;
-    } else if (checkedCount === totalCount) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = true;
-    } else {
-        selectAllCheckbox.indeterminate = true;
-        selectAllCheckbox.checked = false;
-    }
-}
-
-// Update bulk action buttons
-function updateBulkButtons() {
-    const checkedBoxes = document.querySelectorAll('.course-checkbox:checked');
-    const bulkButtons = document.querySelectorAll('[id^="bulk"]');
-    
-    if (checkedBoxes.length > 0) {
-        bulkButtons.forEach(btn => btn.style.display = 'inline-block');
-    } else {
-        bulkButtons.forEach(btn => btn.style.display = 'none');
-    }
-}
-
-// Perform bulk action
-function performBulkAction(action) {
-    const checkedBoxes = document.querySelectorAll('.course-checkbox:checked');
-    
-    if (checkedBoxes.length === 0) {
-        alert('Vui lòng chọn ít nhất một khóa học!');
-        return;
+    // Delete course function
+    function deleteCourse(courseId, courseTitle) {
+        document.getElementById('courseTitle').textContent = courseTitle;
+        document.getElementById('courseIdInput').value = courseId;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
 
-    // Confirmation messages
-    const messages = {
-        'activate': `Bạn có chắc muốn kích hoạt ${checkedBoxes.length} khóa học đã chọn?`,
-        'deactivate': `Bạn có chắc muốn vô hiệu hóa ${checkedBoxes.length} khóa học đã chọn?`,
-        'delete': `Bạn có chắc muốn XÓA ${checkedBoxes.length} khóa học đã chọn?\n\nCảnh báo: Chỉ xóa được khóa học chưa có học viên!`
-    };
-
-    if (!confirm(messages[action])) {
-        return;
+    // Filter functions
+    function clearSearch() {
+        const searchInput = document.querySelector('input[name="search"]');
+        if (searchInput) {
+            searchInput.value = '';
+            document.getElementById('filterForm').submit();
+        }
     }
 
-    // Prepare form
-    const form = document.getElementById('bulkActionForm');
-    const actionInput = document.getElementById('bulkActionInput');
-    const container = document.getElementById('selectedCoursesContainer');
-    
-    // Set action
-    actionInput.value = action;
-    
-    // Clear previous inputs
-    container.innerHTML = '';
-    
-    // Add selected course IDs
-    checkedBoxes.forEach(checkbox => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'selected_courses[]';
-        input.value = checkbox.value;
-        container.appendChild(input);
-    });
-    
-    // Submit form
-    form.submit();
-}
-
-// Delete course function
-function deleteCourse(courseId, courseTitle) {
-    document.getElementById('courseTitle').textContent = courseTitle;
-    document.getElementById('courseIdInput').value = courseId;
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
-
-// Filter functions
-function clearSearch() {
-    const searchInput = document.querySelector('input[name="search"]');
-    if (searchInput) {
-        searchInput.value = '';
-        document.getElementById('filterForm').submit();
+    function resetFilters() {
+        window.location.href = 'courses.php?limit=<?php echo $limit; ?>';
     }
-}
 
-function resetFilters() {
-    window.location.href = 'courses.php?limit=<?php echo $limit; ?>';
-}
-
-function removeFilter(filterName) {
-    const url = new URL(window.location);
-    url.searchParams.delete(filterName);
-    url.searchParams.set('page', '1');
-    url.searchParams.set('limit', '<?php echo $limit; ?>');
-    window.location.href = url.toString();
-}
+    function removeFilter(filterName) {
+        const url = new URL(window.location);
+        url.searchParams.delete(filterName);
+        url.searchParams.set('page', '1');
+        url.searchParams.set('limit', '<?php echo $limit; ?>');
+        window.location.href = url.toString();
+    }
 </script>
 
 <?php include 'includes/admin-footer.php'; ?>

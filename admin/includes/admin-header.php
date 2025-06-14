@@ -243,7 +243,7 @@ if (!isLoggedIn() || !isAdmin()) {
             <ul class="nav flex-column py-3">
                 <li class="nav-item">
                     <a class="nav-link <?php echo ($current_page ?? '') === 'dashboard' ? 'active' : ''; ?>" 
-                       href="<?php echo SITE_URL; ?>/admin/">
+                       href="<?php echo SITE_URL; ?>/admin/dashboard.php">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
