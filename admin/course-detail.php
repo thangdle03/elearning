@@ -5,29 +5,28 @@ require_once '../includes/config.php';
 // Handle AJAX requests first
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json');
-    
+
     if (!isLoggedIn() || !isAdmin()) {
         echo json_encode(['success' => false, 'message' => 'Không có quyền truy cập']);
         exit;
     }
-    
+
     if ($_POST['ajax_action'] === 'add_lesson') {
         try {
             $course_id = (int)$_POST['course_id'];
             $title = trim($_POST['title']);
             $youtube_url = trim($_POST['youtube_url'] ?? '');
             $order_number = (int)$_POST['order_number'];
-            
+
             // Validation (copy từ file add-lesson.php của bạn)
             if (empty($title)) {
                 throw new Exception('Tiêu đề bài học không được để trống');
             }
-            
+
             // Thêm logic từ file add-lesson.php của bạn vào đây
             // ...
-            
+
             echo json_encode(['success' => true, 'message' => 'Thêm bài học thành công!']);
-            
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -141,11 +140,11 @@ $current_page = 'courses';
                             <div class="d-flex align-items-center">
                                 <div class="course-thumbnail me-4">
                                     <?php if (!empty($course['thumbnail'])): ?>
-                                        <img src="<?php echo htmlspecialchars($course['thumbnail']); ?>" 
-                                             alt="" class="rounded shadow" style="width: 120px; height: 80px; object-fit: cover;">
+                                        <img src="<?php echo htmlspecialchars($course['thumbnail']); ?>"
+                                            alt="" class="rounded shadow" style="width: 120px; height: 80px; object-fit: cover;">
                                     <?php else: ?>
-                                        <div class="bg-white bg-opacity-25 rounded d-flex align-items-center justify-content-center" 
-                                             style="width: 120px; height: 80px;">
+                                        <div class="bg-white bg-opacity-25 rounded d-flex align-items-center justify-content-center"
+                                            style="width: 120px; height: 80px;">
                                             <i class="fas fa-image fa-2x text-white-50"></i>
                                         </div>
                                     <?php endif; ?>
@@ -180,17 +179,17 @@ $current_page = 'courses';
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-4 text-end">
-                            <div class="btn-group" role="group">
-                                <a href="edit-course.php?id=<?php echo $course['id']; ?>" class="btn btn-warning btn-lg">
-                                    <i class="fas fa-edit me-2"></i>Chỉnh sửa
+                            <div class="btn-group" role="group" style="display: flex; flex-wrap: nowrap; gap: 0.375rem;">
+                                <a href="edit-course.php?id=<?php echo $course['id']; ?>" class="btn btn-warning" style="white-space: nowrap; font-size: 0.875rem;">
+                                    <i class="fas fa-edit me-1"></i>Chỉnh sửa
                                 </a>
-                                <a href="course-reviews.php?course_id=<?php echo $course['id']; ?>" class="btn btn-success btn-lg">
-                                    <i class="fas fa-star me-2"></i>Reviews
+                                <a href="course-reviews.php?course_id=<?php echo $course['id']; ?>" class="btn btn-success" style="white-space: nowrap; font-size: 0.875rem;">
+                                    <i class="fas fa-star me-1"></i>Reviews
                                 </a>
-                                <a href="courses.php" class="btn btn-light btn-lg">
-                                    <i class="fas fa-arrow-left me-2"></i>Quay lại
+                                <a href="courses.php" class="btn btn-light" style="white-space: nowrap; font-size: 0.875rem;">
+                                    <i class="fas fa-arrow-left me-1"></i>Quay lại
                                 </a>
                             </div>
                         </div>
@@ -334,61 +333,61 @@ $current_page = 'courses';
                                 </thead>
                                 <tbody>
                                     <?php foreach ($lessons as $index => $lesson): ?>
-                                    <tr>
-                                        <td class="text-center align-middle">
-                                            <span class="badge bg-light text-dark"><?php echo $index + 1; ?></span>
-                                        </td>
-                                        <td class="align-middle">
-                                            <div class="d-flex align-items-center">
-                                                <i class="fab fa-youtube text-danger me-2 fa-lg"></i>
-                                                <div>
-                                                    <h6 class="mb-0"><?php echo htmlspecialchars($lesson['title']); ?></h6>
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-hashtag me-1"></i>Bài học #<?php echo $lesson['id']; ?>
-                                                    </small>
+                                        <tr>
+                                            <td class="text-center align-middle">
+                                                <span class="badge bg-light text-dark"><?php echo $index + 1; ?></span>
+                                            </td>
+                                            <td class="align-middle">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fab fa-youtube text-danger me-2 fa-lg"></i>
+                                                    <div>
+                                                        <h6 class="mb-0"><?php echo htmlspecialchars($lesson['title']); ?></h6>
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-hashtag me-1"></i>Bài học #<?php echo $lesson['id']; ?>
+                                                        </small>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-center align-middle">
-                                            <?php if (!empty($lesson['youtube_url'])): ?>
-                                                <a href="<?php echo htmlspecialchars($lesson['youtube_url']); ?>" 
-                                                   target="_blank" class="btn btn-outline-danger btn-sm">
-                                                    <i class="fab fa-youtube me-1"></i>Xem video
-                                                </a>
-                                            <?php else: ?>
-                                                <span class="text-muted">
-                                                    <i class="fas fa-exclamation-triangle me-1"></i>Chưa có video
-                                                </span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="text-center align-middle">
-                                            <span class="badge bg-secondary fs-6">
-                                                <?php echo $lesson['order_number'] ?? 'N/A'; ?>
-                                            </span>
-                                        </td>
-                                        <td class="text-center align-middle">
-                                            <div class="btn-group" role="group">
-                                                <?php if (!$has_enrollments): ?>
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-outline-warning" 
-                                                            onclick="editLesson(<?php echo $lesson['id']; ?>, '<?php echo addslashes($lesson['title']); ?>', '<?php echo addslashes($lesson['youtube_url'] ?? ''); ?>', <?php echo $lesson['order_number']; ?>)"
-                                                            title="Chỉnh sửa">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-outline-danger" 
-                                                            onclick="deleteLesson(<?php echo $lesson['id']; ?>, '<?php echo addslashes($lesson['title']); ?>')"
-                                                            title="Xóa">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                            </td>
+                                            <td class="text-center align-middle">
+                                                <?php if (!empty($lesson['youtube_url'])): ?>
+                                                    <a href="<?php echo htmlspecialchars($lesson['youtube_url']); ?>"
+                                                        target="_blank" class="btn btn-outline-danger btn-sm">
+                                                        <i class="fab fa-youtube me-1"></i>Xem video
+                                                    </a>
                                                 <?php else: ?>
-                                                    <span class="badge bg-info">
-                                                        <i class="fas fa-lock me-1"></i>Đã có học viên
+                                                    <span class="text-muted">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Chưa có video
                                                     </span>
                                                 <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td class="text-center align-middle">
+                                                <span class="badge bg-secondary fs-6">
+                                                    <?php echo $lesson['order_number'] ?? 'N/A'; ?>
+                                                </span>
+                                            </td>
+                                            <td class="text-center align-middle">
+                                                <div class="btn-group" role="group">
+                                                    <?php if (!$has_enrollments): ?>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-warning"
+                                                            onclick="editLesson(<?php echo $lesson['id']; ?>, '<?php echo addslashes($lesson['title']); ?>', '<?php echo addslashes($lesson['youtube_url'] ?? ''); ?>', <?php echo $lesson['order_number']; ?>)"
+                                                            title="Chỉnh sửa">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            onclick="deleteLesson(<?php echo $lesson['id']; ?>, '<?php echo addslashes($lesson['title']); ?>')"
+                                                            title="Xóa">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-info">
+                                                            <i class="fas fa-lock me-1"></i>Đã có học viên
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -419,25 +418,25 @@ $current_page = 'courses';
                 <div class="card-body">
                     <?php if (count($recent_enrollments) > 0): ?>
                         <?php foreach ($recent_enrollments as $enrollment): ?>
-                        <div class="d-flex align-items-center mb-3 p-2 rounded bg-light">
-                            <div class="flex-shrink-0">
-                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
-                                     style="width: 40px; height: 40px;">
-                                    <i class="fas fa-user text-white"></i>
+                            <div class="d-flex align-items-center mb-3 p-2 rounded bg-light">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                                        style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($enrollment['username']); ?></h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-envelope me-1"></i>
+                                        <?php echo htmlspecialchars($enrollment['email']); ?>
+                                    </small>
+                                    <br><small class="text-success">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Đăng ký: <?php echo date('d/m/Y H:i', strtotime($enrollment['enrolled_at'])); ?>
+                                    </small>
                                 </div>
                             </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($enrollment['username']); ?></h6>
-                                <small class="text-muted">
-                                    <i class="fas fa-envelope me-1"></i>
-                                    <?php echo htmlspecialchars($enrollment['email']); ?>
-                                </small>
-                                <br><small class="text-success">
-                                    <i class="fas fa-clock me-1"></i>
-                                    Đăng ký: <?php echo date('d/m/Y H:i', strtotime($enrollment['enrolled_at'])); ?>
-                                </small>
-                            </div>
-                        </div>
                         <?php endforeach; ?>
                         <div class="text-center mt-3 pt-3 border-top">
                             <a href="course-students.php?course_id=<?php echo $course['id']; ?>" class="btn btn-outline-primary btn-sm">
@@ -471,36 +470,36 @@ $current_page = 'courses';
                 <div class="card-body">
                     <?php if (count($recent_reviews) > 0): ?>
                         <?php foreach ($recent_reviews as $index => $review): ?>
-                        <div class="mb-3 pb-3 <?php echo $index < count($recent_reviews) - 1 ? 'border-bottom' : ''; ?>">
-                            <div class="d-flex align-items-start">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center" 
-                                         style="width: 36px; height: 36px;">
-                                        <i class="fas fa-user text-white small"></i>
+                            <div class="mb-3 pb-3 <?php echo $index < count($recent_reviews) - 1 ? 'border-bottom' : ''; ?>">
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-shrink-0">
+                                        <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center"
+                                            style="width: 36px; height: 36px;">
+                                            <i class="fas fa-user text-white small"></i>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <div class="d-flex justify-content-between align-items-start mb-1">
-                                        <h6 class="mb-0 small fw-bold"><?php echo htmlspecialchars($review['username']); ?></h6>
-                                        <small class="text-muted"><?php echo date('d/m', strtotime($review['created_at'])); ?></small>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <h6 class="mb-0 small fw-bold"><?php echo htmlspecialchars($review['username']); ?></h6>
+                                            <small class="text-muted"><?php echo date('d/m', strtotime($review['created_at'])); ?></small>
+                                        </div>
+                                        <div class="text-warning mb-2">
+                                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                <i class="fas fa-star<?php echo $i <= $review['rating'] ? '' : '-o'; ?> fa-xs"></i>
+                                            <?php endfor; ?>
+                                            <span class="text-muted small ms-1">(<?php echo $review['rating']; ?>/5)</span>
+                                        </div>
+                                        <?php if (!empty($review['comment'])): ?>
+                                            <p class="mb-0 small text-muted lh-sm">
+                                                <i class="fas fa-quote-left me-1 text-primary"></i>
+                                                <?php echo htmlspecialchars(mb_substr($review['comment'], 0, 120)); ?><?php echo mb_strlen($review['comment']) > 120 ? '...' : ''; ?>
+                                            </p>
+                                        <?php endif; ?>
                                     </div>
-                                    <div class="text-warning mb-2">
-                                        <?php for ($i = 1; $i <= 5; $i++): ?>
-                                            <i class="fas fa-star<?php echo $i <= $review['rating'] ? '' : '-o'; ?> fa-xs"></i>
-                                        <?php endfor; ?>
-                                        <span class="text-muted small ms-1">(<?php echo $review['rating']; ?>/5)</span>
-                                    </div>
-                                    <?php if (!empty($review['comment'])): ?>
-                                        <p class="mb-0 small text-muted lh-sm">
-                                            <i class="fas fa-quote-left me-1 text-primary"></i>
-                                            <?php echo htmlspecialchars(mb_substr($review['comment'], 0, 120)); ?><?php echo mb_strlen($review['comment']) > 120 ? '...' : ''; ?>
-                                        </p>
-                                    <?php endif; ?>
                                 </div>
                             </div>
-                        </div>
                         <?php endforeach; ?>
-                        
+
                         <?php if (count($recent_reviews) >= 6): ?>
                             <div class="text-center pt-2 border-top">
                                 <small class="text-muted">
@@ -536,27 +535,27 @@ $current_page = 'courses';
                 <!-- Alert containers -->
                 <div id="lesson_error_alert" class="alert alert-danger d-none"></div>
                 <div id="lesson_success_alert" class="alert alert-success d-none"></div>
-                
+
                 <form id="addLessonForm">
                     <input type="hidden" name="course_id" value="<?php echo $course['id']; ?>">
-                    
+
                     <!-- Course Info -->
                     <div class="alert alert-info mb-3">
                         <i class="fas fa-book me-2"></i>
                         <strong>Khóa học:</strong> <?php echo htmlspecialchars($course['title']); ?>
                     </div>
-                    
+
                     <!-- Lesson Title -->
                     <div class="mb-3">
                         <label for="lesson_title" class="form-label fw-bold">
                             Tiêu đề bài học <span class="text-danger">*</span>
                         </label>
-                        <input type="text" 
-                               class="form-control form-control-lg" 
-                               id="lesson_title" 
-                               name="title" 
-                               placeholder="Nhập tiêu đề bài học..."
-                               required>
+                        <input type="text"
+                            class="form-control form-control-lg"
+                            id="lesson_title"
+                            name="title"
+                            placeholder="Nhập tiêu đề bài học..."
+                            required>
                     </div>
 
                     <!-- YouTube URL -->
@@ -565,11 +564,11 @@ $current_page = 'courses';
                             <i class="fab fa-youtube text-danger me-1"></i>
                             URL YouTube
                         </label>
-                        <input type="url" 
-                               class="form-control form-control-lg" 
-                               id="lesson_youtube_url" 
-                               name="youtube_url" 
-                               placeholder="https://www.youtube.com/watch?v=...">
+                        <input type="url"
+                            class="form-control form-control-lg"
+                            id="lesson_youtube_url"
+                            name="youtube_url"
+                            placeholder="https://www.youtube.com/watch?v=...">
                     </div>
 
                     <!-- Order Number -->
@@ -577,13 +576,13 @@ $current_page = 'courses';
                         <label for="lesson_order" class="form-label fw-bold">
                             Thứ tự bài học <span class="text-danger">*</span>
                         </label>
-                        <input type="number" 
-                               class="form-control form-control-lg" 
-                               id="lesson_order" 
-                               name="order_number" 
-                               value="<?php echo (count($lessons) > 0 ? max(array_column($lessons, 'order_number')) + 1 : 1); ?>"
-                               min="1" 
-                               required>
+                        <input type="number"
+                            class="form-control form-control-lg"
+                            id="lesson_order"
+                            name="order_number"
+                            value="<?php echo (count($lessons) > 0 ? max(array_column($lessons, 'order_number')) + 1 : 1); ?>"
+                            min="1"
+                            required>
                     </div>
                 </form>
             </div>
@@ -613,23 +612,23 @@ $current_page = 'courses';
                 <form id="editLessonForm">
                     <input type="hidden" name="lesson_id" id="edit_lesson_id">
                     <input type="hidden" name="course_id" value="<?php echo $course['id']; ?>">
-                    
+
                     <!-- Course Info -->
                     <div class="alert alert-info mb-3">
                         <i class="fas fa-book me-2"></i>
                         <strong>Khóa học:</strong> <?php echo htmlspecialchars($course['title']); ?>
                     </div>
-                    
+
                     <!-- Lesson Title -->
                     <div class="mb-3">
                         <label for="edit_lesson_title" class="form-label fw-bold">
                             Tiêu đề bài học <span class="text-danger">*</span>
                         </label>
-                        <input type="text" 
-                               class="form-control form-control-lg" 
-                               id="edit_lesson_title" 
-                               name="title" 
-                               required>
+                        <input type="text"
+                            class="form-control form-control-lg"
+                            id="edit_lesson_title"
+                            name="title"
+                            required>
                     </div>
 
                     <!-- YouTube URL -->
@@ -638,10 +637,10 @@ $current_page = 'courses';
                             <i class="fab fa-youtube text-danger me-1"></i>
                             URL YouTube
                         </label>
-                        <input type="url" 
-                               class="form-control form-control-lg" 
-                               id="edit_lesson_youtube_url" 
-                               name="youtube_url">
+                        <input type="url"
+                            class="form-control form-control-lg"
+                            id="edit_lesson_youtube_url"
+                            name="youtube_url">
                     </div>
 
                     <!-- Order Number -->
@@ -649,12 +648,12 @@ $current_page = 'courses';
                         <label for="edit_lesson_order" class="form-label fw-bold">
                             Thứ tự bài học <span class="text-danger">*</span>
                         </label>
-                        <input type="number" 
-                               class="form-control form-control-lg" 
-                               id="edit_lesson_order" 
-                               name="order_number" 
-                               min="1" 
-                               required>
+                        <input type="number"
+                            class="form-control form-control-lg"
+                            id="edit_lesson_order"
+                            name="order_number"
+                            min="1"
+                            required>
                     </div>
 
                     <!-- Error/Success Display -->
@@ -713,19 +712,23 @@ $current_page = 'courses';
     .bg-gradient-primary {
         background: linear-gradient(45deg, #4e73df, #224abe);
     }
+
     .bg-gradient-success {
         background: linear-gradient(45deg, #1cc88a, #13855c);
     }
+
     .bg-gradient-info {
         background: linear-gradient(45deg, #36b9cc, #258391);
     }
+
     .bg-gradient-warning {
         background: linear-gradient(45deg, #f6c23e, #d4a013);
     }
+
     .bg-gradient-danger {
         background: linear-gradient(45deg, #e74a3b, #c82333);
     }
-    
+
     .card {
         border: none !important;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
@@ -741,12 +744,12 @@ $current_page = 'courses';
         font-weight: 600;
         font-size: 0.85rem;
     }
-    
+
     .table td {
         vertical-align: middle;
         border-bottom: 1px solid #f8f9fc;
     }
-    
+
     .table tbody tr:hover {
         background-color: #f8f9fc;
     }
@@ -755,7 +758,7 @@ $current_page = 'courses';
         text-decoration: none;
         color: #5a5c69;
     }
-    
+
     .breadcrumb-item a:hover {
         color: #4e73df;
     }
@@ -808,8 +811,13 @@ $current_page = 'courses';
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     .lesson-actions {
@@ -824,230 +832,232 @@ $current_page = 'courses';
 
 <!-- JavaScript -->
 <script>
-// Simple global functions for onclick
-function editLesson(lessonId, title, youtubeUrl, orderNumber) {
-    console.log('✅ Edit lesson clicked:', lessonId, title);
-    
-    // Check if elements exist
-    const idInput = document.getElementById('edit_lesson_id');
-    const titleInput = document.getElementById('edit_lesson_title');
-    const urlInput = document.getElementById('edit_lesson_youtube_url');
-    const orderInput = document.getElementById('edit_lesson_order');
-    const modal = document.getElementById('editLessonModal');
-    
-    if (!idInput || !titleInput || !urlInput || !orderInput || !modal) {
-        alert('❌ Không tìm thấy form chỉnh sửa!');
-        console.error('Missing edit form elements');
-        return;
-    }
-    
-    // Fill form data
-    idInput.value = lessonId;
-    titleInput.value = title;
-    urlInput.value = youtubeUrl || '';
-    orderInput.value = orderNumber;
-    
-    // Show modal
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
-}
+    // Simple global functions for onclick
+    function editLesson(lessonId, title, youtubeUrl, orderNumber) {
+        console.log('✅ Edit lesson clicked:', lessonId, title);
 
-function deleteLesson(lessonId, title) {
-    console.log('✅ Delete lesson clicked:', lessonId, title);
-    
-    // Check if elements exist
-    const idInput = document.getElementById('delete_lesson_id');
-    const titleDisplay = document.getElementById('delete_lesson_title');
-    const modal = document.getElementById('deleteLessonModal');
-    
-    if (!idInput || !titleDisplay || !modal) {
-        alert('❌ Không tìm thấy form xóa!');
-        console.error('Missing delete form elements');
-        return;
-    }
-    
-    // Fill data
-    idInput.value = lessonId;
-    titleDisplay.textContent = title;
-    
-    // Show modal
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
-}
+        // Check if elements exist
+        const idInput = document.getElementById('edit_lesson_id');
+        const titleInput = document.getElementById('edit_lesson_title');
+        const urlInput = document.getElementById('edit_lesson_youtube_url');
+        const orderInput = document.getElementById('edit_lesson_order');
+        const modal = document.getElementById('editLessonModal');
 
-// DOM Content Loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ Course detail page loaded');
-    
-    // Add lesson functionality
-    const saveBtn = document.getElementById('saveLesson');
-    if (saveBtn) {
-        console.log('✅ Save button found');
-        saveBtn.addEventListener('click', function() {
-            console.log('📤 Adding lesson...');
-            
-            const form = document.getElementById('addLessonForm');
-            if (!form) {
-                alert('❌ Không tìm thấy form thêm bài học!');
-                return;
-            }
-            
-            const formData = new FormData(form);
-            const title = formData.get('title')?.trim();
-            
-            if (!title) {
-                alert('❌ Vui lòng nhập tiêu đề bài học!');
-                return;
-            }
-            
-            // Show loading
-            const originalText = this.innerHTML;
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang thêm...';
-            
-            fetch('lesson-actions.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                console.log('📡 Add response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('📊 Add response:', data);
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    alert('❌ ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('❌ Add error:', error);
-                alert('❌ Lỗi kết nối: ' + error.message);
-            })
-            .finally(() => {
-                this.disabled = false;
-                this.innerHTML = originalText;
-            });
-        });
-    } else {
-        console.error('❌ Save button not found');
+        if (!idInput || !titleInput || !urlInput || !orderInput || !modal) {
+            alert('❌ Không tìm thấy form chỉnh sửa!');
+            console.error('Missing edit form elements');
+            return;
+        }
+
+        // Fill form data
+        idInput.value = lessonId;
+        titleInput.value = title;
+        urlInput.value = youtubeUrl || '';
+        orderInput.value = orderNumber;
+
+        // Show modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
     }
-    
-    // Update lesson functionality
-    const updateBtn = document.getElementById('updateLesson');
-    if (updateBtn) {
-        console.log('✅ Update button found');
-        updateBtn.addEventListener('click', function() {
-            console.log('📤 Updating lesson...');
-            
-            const form = document.getElementById('editLessonForm');
-            if (!form) {
-                alert('❌ Không tìm thấy form chỉnh sửa!');
-                return;
-            }
-            
-            const formData = new FormData(form);
-            formData.set('action', 'edit_lesson');
-            
-            const title = formData.get('title')?.trim();
-            if (!title) {
-                alert('❌ Vui lòng nhập tiêu đề bài học!');
-                return;
-            }
-            
-            // Show loading
-            const originalText = this.innerHTML;
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang cập nhật...';
-            
-            fetch('lesson-actions.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                console.log('📡 Update response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('📊 Update response:', data);
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    alert('❌ ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('❌ Update error:', error);
-                alert('❌ Lỗi kết nối: ' + error.message);
-            })
-            .finally(() => {
-                this.disabled = false;
-                this.innerHTML = originalText;
-            });
-        });
-    } else {
-        console.error('❌ Update button not found');
+
+    function deleteLesson(lessonId, title) {
+        console.log('✅ Delete lesson clicked:', lessonId, title);
+
+        // Check if elements exist
+        const idInput = document.getElementById('delete_lesson_id');
+        const titleDisplay = document.getElementById('delete_lesson_title');
+        const modal = document.getElementById('deleteLessonModal');
+
+        if (!idInput || !titleDisplay || !modal) {
+            alert('❌ Không tìm thấy form xóa!');
+            console.error('Missing delete form elements');
+            return;
+        }
+
+        // Fill data
+        idInput.value = lessonId;
+        titleDisplay.textContent = title;
+
+        // Show modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
     }
-    
-    // Delete lesson functionality
-    const confirmDeleteBtn = document.getElementById('confirmDeleteLesson');
-    if (confirmDeleteBtn) {
-        console.log('✅ Confirm delete button found');
-        confirmDeleteBtn.addEventListener('click', function() {
-            console.log('📤 Deleting lesson...');
-            
-            const lessonId = document.getElementById('delete_lesson_id')?.value;
-            const courseId = <?php echo $course['id']; ?>;
-            
-            if (!lessonId) {
-                alert('❌ Không tìm thấy ID bài học!');
-                return;
-            }
-            
-            // Show loading
-            const originalText = this.innerHTML;
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xóa...';
-            
-            fetch('lesson-actions.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'delete_lesson',
-                    lesson_id: parseInt(lessonId),
-                    course_id: parseInt(courseId)
-                })
-            })
-            .then(response => {
-                console.log('📡 Delete response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('📊 Delete response:', data);
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                    bootstrap.Modal.getInstance(document.getElementById('deleteLessonModal')).hide();
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    alert('❌ ' + data.message);
+
+    // DOM Content Loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('✅ Course detail page loaded');
+
+        // Add lesson functionality
+        const saveBtn = document.getElementById('saveLesson');
+        if (saveBtn) {
+            console.log('✅ Save button found');
+            saveBtn.addEventListener('click', function() {
+                console.log('📤 Adding lesson...');
+
+                const form = document.getElementById('addLessonForm');
+                if (!form) {
+                    alert('❌ Không tìm thấy form thêm bài học!');
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('❌ Delete error:', error);
-                alert('❌ Lỗi kết nối: ' + error.message);
-            })
-            .finally(() => {
-                this.disabled = false;
-                this.innerHTML = originalText;
+
+                const formData = new FormData(form);
+                const title = formData.get('title')?.trim();
+
+                if (!title) {
+                    alert('❌ Vui lòng nhập tiêu đề bài học!');
+                    return;
+                }
+
+                // Show loading
+                const originalText = this.innerHTML;
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang thêm...';
+
+                fetch('lesson-actions.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        console.log('📡 Add response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('📊 Add response:', data);
+                        if (data.success) {
+                            alert('✅ ' + data.message);
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            alert('❌ ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Add error:', error);
+                        alert('❌ Lỗi kết nối: ' + error.message);
+                    })
+                    .finally(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalText;
+                    });
             });
-        });
-    } else {
-        console.error('❌ Confirm delete button not found');
-    }
-});
+        } else {
+            console.error('❌ Save button not found');
+        }
+
+        // Update lesson functionality
+        const updateBtn = document.getElementById('updateLesson');
+        if (updateBtn) {
+            console.log('✅ Update button found');
+            updateBtn.addEventListener('click', function() {
+                console.log('📤 Updating lesson...');
+
+                const form = document.getElementById('editLessonForm');
+                if (!form) {
+                    alert('❌ Không tìm thấy form chỉnh sửa!');
+                    return;
+                }
+
+                const formData = new FormData(form);
+                formData.set('action', 'edit_lesson');
+
+                const title = formData.get('title')?.trim();
+                if (!title) {
+                    alert('❌ Vui lòng nhập tiêu đề bài học!');
+                    return;
+                }
+
+                // Show loading
+                const originalText = this.innerHTML;
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang cập nhật...';
+
+                fetch('lesson-actions.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        console.log('📡 Update response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('📊 Update response:', data);
+                        if (data.success) {
+                            alert('✅ ' + data.message);
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            alert('❌ ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Update error:', error);
+                        alert('❌ Lỗi kết nối: ' + error.message);
+                    })
+                    .finally(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalText;
+                    });
+            });
+        } else {
+            console.error('❌ Update button not found');
+        }
+
+        // Delete lesson functionality
+        const confirmDeleteBtn = document.getElementById('confirmDeleteLesson');
+        if (confirmDeleteBtn) {
+            console.log('✅ Confirm delete button found');
+            confirmDeleteBtn.addEventListener('click', function() {
+                console.log('📤 Deleting lesson...');
+
+                const lessonId = document.getElementById('delete_lesson_id')?.value;
+                const courseId = <?php echo $course['id']; ?>;
+
+                if (!lessonId) {
+                    alert('❌ Không tìm thấy ID bài học!');
+                    return;
+                }
+
+                // Show loading
+                const originalText = this.innerHTML;
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xóa...';
+
+                fetch('lesson-actions.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            action: 'delete_lesson',
+                            lesson_id: parseInt(lessonId),
+                            course_id: parseInt(courseId)
+                        })
+                    })
+                    .then(response => {
+                        console.log('📡 Delete response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('📊 Delete response:', data);
+                        if (data.success) {
+                            alert('✅ ' + data.message);
+                            bootstrap.Modal.getInstance(document.getElementById('deleteLessonModal')).hide();
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            alert('❌ ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Delete error:', error);
+                        alert('❌ Lỗi kết nối: ' + error.message);
+                    })
+                    .finally(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalText;
+                    });
+            });
+        } else {
+            console.error('❌ Confirm delete button not found');
+        }
+    });
 </script>
 
 <?php include 'includes/admin-footer.php'; ?>

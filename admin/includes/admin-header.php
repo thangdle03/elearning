@@ -527,23 +527,7 @@ if (!isLoggedIn() || !isAdmin()) {
                 </div>
 
                 <!-- Lesson Management -->
-                <div class="nav-section">
-                    <div class="nav-section-title">Quản lý bài học</div>
-                    <div class="nav-item">
-                        <a class="nav-link <?php echo ($current_page ?? '') === 'lessons' ? 'active' : ''; ?>"
-                            href="<?php echo SITE_URL; ?>/admin/lessons.php">
-                            <i class="fas fa-play-circle"></i>
-                            Danh sách bài học
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-link <?php echo ($current_page ?? '') === 'add-lesson' ? 'active' : ''; ?>"
-                            href="<?php echo SITE_URL; ?>/admin/add-lesson.php">
-                            <i class="fas fa-plus"></i>
-                            Thêm bài học
-                        </a>
-                    </div>
-                </div>
+
 
                 <!-- User Management -->
                 <div class="nav-section">
