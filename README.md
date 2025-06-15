@@ -34,7 +34,7 @@ Hệ thống học trực tuyến xây dựng bằng PHP và MySQL, cho phép xe
 
 1. **Clone repository**
 ```bash
-git clone https://github.com/yourusername/elearning.git
+git clone https://github.com/AuGoaThree/elearning.git
 cd elearning
 ```
 
