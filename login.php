@@ -23,6 +23,7 @@ if (isset($_SESSION['register_success'])) {
 
 if ($_POST) {
     $username = sanitize($_POST['username']);
+
     $password = $_POST['password'];
     $remember = isset($_POST['remember']);
     
@@ -55,7 +56,7 @@ if ($_POST) {
             
             // Redirect based on role
             if ($user['role'] === 'admin') {
-                redirect(SITE_URL . '/admin/');
+                redirect(SITE_URL . '/admin/dashboard.php');
             } else {
                 // Redirect to intended page or my-courses
                 $redirect_to = isset($_GET['redirect']) ? $_GET['redirect'] : '/my-courses.php';
