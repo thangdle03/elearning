@@ -312,9 +312,7 @@ $current_page = 'courses';
                             <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addLessonModal">
                                 <i class="fas fa-plus me-1"></i>Thêm bài học
                             </button>
-                            <a href="course-lessons.php?course_id=<?php echo $course['id']; ?>" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-cog me-1"></i>Quản lý
-                            </a>
+
                         </div>
                     </div>
                 </div>
