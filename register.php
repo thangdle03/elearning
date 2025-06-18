@@ -1,4 +1,6 @@
 <?php
+// filepath: d:\Xampp\htdocs\elearning\register.php
+
 
 require_once 'includes/config.php';
 
@@ -33,10 +35,17 @@ if ($_POST) {
         $errors['email'] = 'Email không hợp lệ!';
     }
     
+    // Enhanced password validation with max length limit
     if (empty($password)) {
         $errors['password'] = 'Vui lòng nhập mật khẩu!';
-    } elseif (strlen($password) < 6) {
-        $errors['password'] = 'Mật khẩu phải có ít nhất 6 ký tự!';
+    } elseif (strlen($password) < 8) {
+        $errors['password'] = 'Mật khẩu phải có ít nhất 8 ký tự!';
+    } elseif (strlen($password) > 255) {
+        $errors['password'] = 'Mật khẩu không được vượt quá 255 ký tự!';
+    } elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/', $password)) {
+        $errors['password'] = 'Mật khẩu phải chứa ít nhất: 1 chữ thường, 1 chữ hoa, 1 số và 1 ký tự đặc biệt (@$!%*?&)!';
+    } elseif (preg_match('/^(password|123456|qwerty|admin|user)/i', $password)) {
+        $errors['password'] = 'Mật khẩu quá đơn giản, vui lòng chọn mật khẩu khác!';
     }
     
     if ($password !== $confirm_password) {
@@ -166,7 +175,43 @@ if ($_POST) {
                                 <i class="bi bi-exclamation-circle me-1"></i><?php echo $errors['password']; ?>
                             </div>
                             <?php endif; ?>
-                            <small class="text-muted">Tối thiểu 6 ký tự</small>
+                            
+                            <!-- Password Strength Indicator -->
+                            <!-- <div class="mt-2">
+                                <div class="password-strength">
+                                    <div class="strength-bar">
+                                        <div class="strength-fill" id="strengthFill"></div>
+                                    </div>
+                                    <small class="strength-text" id="strengthText">Độ mạnh mật khẩu</small>
+                                </div>
+                            </div>
+                             -->
+                            <!-- Password Requirements -->
+                            <!-- <div class="password-requirements mt-2">
+                                <small class="text-muted d-block mb-1"><strong>Yêu cầu mật khẩu:</strong></small>
+                                <ul class="requirements-list">
+                                    <li id="req-length" class="requirement">
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                        <span>8-255 ký tự</span>
+                                    </li>
+                                    <li id="req-lowercase" class="requirement">
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                        <span>Có chữ thường (a-z)</span>
+                                    </li>
+                                    <li id="req-uppercase" class="requirement">
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                        <span>Có chữ hoa (A-Z)</span>
+                                    </li>
+                                    <li id="req-number" class="requirement">
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                        <span>Có số (0-9)</span>
+                                    </li>
+                                    <li id="req-special" class="requirement">
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                        <span>Có ký tự đặc biệt (@$!%*?&)</span>
+                                    </li>
+                                </ul>
+                            </div> -->
                         </div>
                         
                         <div class="mb-3">
@@ -184,6 +229,7 @@ if ($_POST) {
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
+                            <div id="password-match-feedback" class="mt-1"></div>
                             <?php if (isset($errors['confirm_password'])): ?>
                             <div class="invalid-feedback d-block">
                                 <i class="bi bi-exclamation-circle me-1"></i><?php echo $errors['confirm_password']; ?>
@@ -215,7 +261,7 @@ if ($_POST) {
                         </div>
                         
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-success btn-lg" id="registerBtn">
+                            <button type="submit" class="btn btn-success btn-lg" id="registerBtn" disabled>
                                 <i class="bi bi-person-plus me-2"></i>Tạo tài khoản
                             </button>
                         </div>
@@ -304,6 +350,123 @@ if ($_POST) {
     </div>
 </div>
 
+<!-- CSS for Password Strength -->
+<style>
+.password-strength {
+    margin-top: 0.5rem;
+}
+
+.strength-bar {
+    height: 4px;
+    background-color: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.strength-fill.weak {
+    background-color: #dc3545;
+    width: 25%;
+}
+
+.strength-fill.fair {
+    background-color: #fd7e14;
+    width: 50%;
+}
+
+.strength-fill.good {
+    background-color: #ffc107;
+    width: 75%;
+}
+
+.strength-fill.strong {
+    background-color: #28a745;
+    width: 100%;
+}
+
+.strength-text {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.strength-text.weak {
+    color: #dc3545;
+}
+
+.strength-text.fair {
+    color: #fd7e14;
+}
+
+.strength-text.good {
+    color: #ffc107;
+}
+
+.strength-text.strong {
+    color: #28a745;
+}
+
+.requirements-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.75rem;
+}
+
+.requirement {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.requirement i {
+    margin-right: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.requirement.valid i {
+    color: #28a745 !important;
+}
+
+.requirement.valid i:before {
+    content: "\f26b";
+}
+
+#password-match-feedback {
+    font-size: 0.8rem;
+}
+
+.match-success {
+    color: #28a745;
+}
+
+.match-error {
+    color: #dc3545;
+}
+
+/* Add this CSS to make button states clearer */
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    opacity: 0.6;
+}
+
+.btn-success {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+}
+</style>
+
 <!-- JavaScript -->
 <script>
 // Toggle password visibility
@@ -325,16 +488,151 @@ function setupPasswordToggle(passwordId, toggleId) {
 setupPasswordToggle('password', 'togglePassword');
 setupPasswordToggle('confirm_password', 'toggleConfirmPassword');
 
-// Form validation
+// Simplified password validation (without strength UI)
+function validatePassword(password) {
+    const requirements = {
+        length: password.length >= 8 && password.length <= 255,
+        lowercase: /[a-z]/.test(password),
+        uppercase: /[A-Z]/.test(password),
+        number: /\d/.test(password),
+        special: /[@$!%*?&]/.test(password)
+    };
+    
+    // Check if all requirements are met
+    return Object.values(requirements).every(req => req === true);
+}
+
+// Password input event
+document.getElementById('password').addEventListener('input', function() {
+    updateSubmitButton();
+});
+
+// Password confirmation check
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    const feedback = document.getElementById('password-match-feedback');
+    
+    if (confirmPassword) {
+        if (password === confirmPassword) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+            feedback.innerHTML = '<i class="bi bi-check-circle me-1 text-success"></i><span class="match-success">Mật khẩu khớp</span>';
+        } else {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+            feedback.innerHTML = '<i class="bi bi-x-circle me-1 text-danger"></i><span class="match-error">Mật khẩu không khớp</span>';
+        }
+    } else {
+        this.classList.remove('is-valid', 'is-invalid');
+        feedback.innerHTML = '';
+    }
+    
+    updateSubmitButton();
+});
+
+// Username validation
+document.getElementById('username').addEventListener('input', function() {
+    const username = this.value.trim();
+    if (username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username)) {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+    } else {
+        this.classList.remove('is-valid');
+        this.classList.add('is-invalid');
+    }
+    updateSubmitButton();
+});
+
+// Email validation
+document.getElementById('email').addEventListener('input', function() {
+    const email = this.value.trim();
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+    } else {
+        this.classList.remove('is-valid');
+        this.classList.add('is-invalid');
+    }
+    updateSubmitButton();
+});
+
+// Terms checkbox
+document.getElementById('terms').addEventListener('change', function() {
+    updateSubmitButton();
+});
+
+// Update submit button state
+function updateSubmitButton() {
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    const termsChecked = document.getElementById('terms').checked;
+    const submitBtn = document.getElementById('registerBtn');
+    
+    // Check all conditions
+    const isUsernameValid = username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
+    const isEmailValid = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const isPasswordValid = validatePassword(password);
+    const isPasswordMatch = password === confirmPassword && password.length > 0;
+    const isTermsAccepted = termsChecked;
+    
+    // Enable button only if all conditions are met
+    if (isUsernameValid && isEmailValid && isPasswordValid && isPasswordMatch && isTermsAccepted) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('btn-secondary');
+        submitBtn.classList.add('btn-success');
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.remove('btn-success');
+        submitBtn.classList.add('btn-secondary');
+    }
+}
+
+// Form validation on submit
 document.getElementById('registerForm').addEventListener('submit', function(e) {
     const btn = document.getElementById('registerBtn');
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirm_password').value;
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const terms = document.getElementById('terms').checked;
     
-    // Check password match
+    // Final validation
+    if (!username || username.length < 3) {
+        e.preventDefault();
+        alert('Tên đăng nhập phải có ít nhất 3 ký tự!');
+        return;
+    }
+    
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        e.preventDefault();
+        alert('Email không hợp lệ!');
+        return;
+    }
+    
+    if (password.length < 8 || password.length > 255) {
+        e.preventDefault();
+        alert('Mật khẩu phải có từ 8-255 ký tự!');
+        return;
+    }
+    
+    if (!validatePassword(password)) {
+        e.preventDefault();
+        alert('Mật khẩu phải chứa ít nhất: 1 chữ thường, 1 chữ hoa, 1 số và 1 ký tự đặc biệt (@$!%*?&)!');
+        return;
+    }
+    
     if (password !== confirmPassword) {
         e.preventDefault();
         alert('Mật khẩu xác nhận không khớp!');
+        return;
+    }
+    
+    if (!terms) {
+        e.preventDefault();
+        alert('Bạn phải đồng ý với điều khoản sử dụng!');
         return;
     }
     
@@ -343,20 +641,13 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     btn.disabled = true;
 });
 
-// Real-time password confirmation check
-document.getElementById('confirm_password').addEventListener('input', function() {
-    const password = document.getElementById('password').value;
-    const confirmPassword = this.value;
-    
-    if (confirmPassword && password !== confirmPassword) {
-        this.classList.add('is-invalid');
-    } else {
-        this.classList.remove('is-invalid');
-    }
-});
-
 // Auto focus on username field
 document.getElementById('username').focus();
+
+// Initialize button state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateSubmitButton();
+});
 </script>
 
 <?php include 'includes/footer.php'; ?>
