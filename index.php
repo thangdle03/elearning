@@ -244,7 +244,7 @@ try {
                         <i class="fas fa-rocket me-2"></i>Bắt đầu ngay
                     </a>
                     <?php else: ?>
-                    <a href="<?php echo SITE_URL; ?>/dashboard/" class="btn btn-outline-bright btn-lg px-4 btn-hover-scale">
+                    <a href="<?php echo SITE_URL; ?>/dashboard.php" class="btn btn-outline-bright btn-lg px-4 btn-hover-scale">
                         <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                     </a>
                     <?php endif; ?>
