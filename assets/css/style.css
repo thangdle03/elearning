@@ -188,6 +188,132 @@ footer {
     background-color: var(--dark-color);
 }
 
+/* Paid course styling - Updated attractive colors */
+.price-section.paid {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-bottom: 1px solid #4338ca;
+    color: white;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 4px 20px rgba(79, 70, 229, 0.3);
+}
+
+.price-section.paid .price-amount {
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    font-weight: 800;
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.price-section.paid .price-label {
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    font-size: 1rem;
+}
+
+/* Alternative color schemes - choose one you like */
+
+/* Option 1: Vibrant Orange-Pink */
+/*
+.price-section.paid {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    border-bottom: 1px solid #e65100;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 4px 20px rgba(255, 107, 53, 0.4);
+}
+*/
+
+/* Option 2: Modern Teal-Blue */
+/*
+.price-section.paid {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    border-bottom: 1px solid #0e7490;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 4px 20px rgba(6, 182, 212, 0.4);
+}
+*/
+
+/* Option 3: Elegant Dark Purple */
+/*
+.price-section.paid {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-bottom: 1px solid #5b21b6;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 4px 20px rgba(99, 102, 241, 0.4);
+}
+*/
+
+/* Option 4: Success Green */
+/*
+.price-section.paid {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-bottom: 1px solid #047857;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 4px 20px rgba(16, 185, 129, 0.4);
+}
+*/
+
+/* Option 5: Premium Gold */
+/*
+.price-section.paid {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-bottom: 1px solid #b45309;
+    color: #ffffff;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.2),
+        0 4px 20px rgba(245, 158, 11, 0.4);
+}
+*/
+
+/* Option 6: Cool Blue-Gray */
+/*
+.price-section.paid {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    border-bottom: 1px solid #1e293b;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 4px 20px rgba(71, 85, 105, 0.4);
+}
+*/
+
+/* Hover effect for paid section */
+.price-section.paid:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 8px 30px rgba(79, 70, 229, 0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Add pulse animation for price amount */
+.price-section.paid .price-amount {
+    animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+@keyframes subtle-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Enhanced styling for better visual hierarchy */
+.price-section.paid::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ffffff40, #ffffff80, #ffffff40);
+    border-radius: 4px 4px 0 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .hero-section h1 {
