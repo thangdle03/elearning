@@ -752,6 +752,54 @@ $current_user = getCurrentUser();
             transform: translateY(-5px);
             box-shadow: var(--shadow-xl);
         }
+
+        /* ✅ THÊM CSS CHO ADMIN ITEMS */
+        .dropdown-item.admin-item {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-left: 3px solid var(--primary-500);
+            margin: 2px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .dropdown-item.admin-item:hover {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: var(--primary-700);
+            border-left-color: var(--primary-600);
+            transform: translateX(2px);
+        }
+
+        .dropdown-item.admin-item i {
+            color: var(--primary-600);
+        }
+
+        .mobile-menu .nav-link.admin-item {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-left: 3px solid var(--primary-500);
+            margin: 2px 0;
+            border-radius: var(--radius-sm);
+        }
+
+        .mobile-menu .nav-link.admin-item:hover {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: var(--primary-700);
+        }
+
+        .mobile-menu .nav-link.admin-item i {
+            color: var(--primary-600);
+        }
+
+        /* Admin Badge */
+        .admin-badge {
+            background: var(--gradient-primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
@@ -839,6 +887,35 @@ $current_user = getCurrentUser();
                             <i class="fas fa-certificate"></i>
                             <span>Chứng chỉ</span>
                         </a>
+                        
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                        <!-- ✅ THÊM PHẦN ADMIN -->
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-header">
+                            Quản trị hệ thống
+                        </div>
+                        <a class="dropdown-item admin-item" href="<?php echo SITE_URL; ?>/admin/dashboard.php">
+                            <i class="fas fa-user-shield"></i>
+                            <span>Trang quản lý</span>
+                        </a>
+                        <a class="dropdown-item admin-item" href="<?php echo SITE_URL; ?>/admin/courses.php">
+                            <i class="fas fa-book-medical"></i>
+                            <span>Quản lý khóa học</span>
+                        </a>
+                        <a class="dropdown-item admin-item" href="<?php echo SITE_URL; ?>/admin/users.php">
+                            <i class="fas fa-users"></i>
+                            <span>Quản lý người dùng</span>
+                        </a>
+                        <a class="dropdown-item admin-item" href="<?php echo SITE_URL; ?>/admin/reviews.php">
+                            <i class="fas fa-star"></i>
+                            <span>Quản lý đánh giá</span>
+                        </a>
+                        <a class="dropdown-item admin-item" href="<?php echo SITE_URL; ?>/admin/categories.php">
+                            <i class="fas fa-tags"></i>
+                            <span>Danh mục</span>
+                        </a>
+                        <?php endif; ?>
+                        
                         <a class="dropdown-item" href="<?php echo SITE_URL; ?>/settings.php">
                             <i class="fas fa-cog"></i>
                             <span>Cài đặt</span>
@@ -910,6 +987,27 @@ $current_user = getCurrentUser();
                 <i class="fas fa-user-circle"></i>
                 <span>Hồ sơ cá nhân</span>
             </a>
+            
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+            <!-- ✅ THÊM MOBILE MENU CHO ADMIN -->
+            <a class="nav-link admin-item" href="<?php echo SITE_URL; ?>/admin/dashboard.php">
+                <i class="fas fa-user-shield"></i>
+                <span>Trang quản lý</span>
+            </a>
+            <a class="nav-link admin-item" href="<?php echo SITE_URL; ?>/admin/courses.php">
+                <i class="fas fa-book-medical"></i>
+                <span>Quản lý khóa học</span>
+            </a>
+            <a class="nav-link admin-item" href="<?php echo SITE_URL; ?>/admin/users.php">
+                <i class="fas fa-users"></i>
+                <span>Quản lý người dùng</span>
+            </a>
+            <a class="nav-link admin-item" href="<?php echo SITE_URL; ?>/admin/reviews.php">
+                <i class="fas fa-star"></i>
+                <span>Quản lý đánh giá</span>
+            </a>
+            <?php endif; ?>
+            
             <a class="nav-link" href="<?php echo SITE_URL; ?>/settings.php">
                 <i class="fas fa-cog"></i>
                 <span>Cài đặt</span>
@@ -918,6 +1016,7 @@ $current_user = getCurrentUser();
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Đăng xuất</span>
             </a>
+
             <?php else: ?>
             <a class="nav-link" href="<?php echo SITE_URL; ?>/login.php">
                 <i class="fas fa-sign-in-alt"></i>
