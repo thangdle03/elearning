@@ -367,9 +367,7 @@ try {
         <a href="../course-detail.php?id=<?php echo $course_id; ?>" target="_blank" class="btn btn-outline-primary">
             <i class="fas fa-eye me-2"></i>Xem trước
         </a>
-        <a href="lessons.php?course_id=<?php echo $course_id; ?>" class="btn btn-outline-info">
-            <i class="fas fa-list me-2"></i>Quản lý bài học
-        </a>
+
        
     </div>
 </div>
@@ -614,15 +612,10 @@ try {
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="lessons.php?course_id=<?php echo $course_id; ?>" class="btn btn-info btn-sm">
-                        <i class="fas fa-list me-2"></i>Quản lý bài học
-                    </a>
                     <a href="../course-detail.php?id=<?php echo $course_id; ?>" target="_blank" class="btn btn-primary btn-sm">
                         <i class="fas fa-eye me-2"></i>Xem khóa học
                     </a>
-                    <button type="button" class="btn btn-warning btn-sm" onclick="duplicateCourse()">
-                        <i class="fas fa-copy me-2"></i>Sao chép khóa học
-                    </button>
+
                     <hr class="my-2">
                     <button type="button" class="btn btn-danger btn-sm" onclick="deleteCourse()">
                         <i class="fas fa-trash me-2"></i>Xóa khóa học

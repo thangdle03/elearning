@@ -97,14 +97,14 @@ $stmt = $pdo->prepare("
 $stmt->execute([$course_id]);
 $lessons = $stmt->fetchAll();
 
-// Get recent reviews
+// Get recent reviews - sửa lại query để lấy đúng tên column
 $stmt = $pdo->prepare("
     SELECT r.*, u.username
     FROM reviews r
     JOIN users u ON r.user_id = u.id
-    WHERE r.course_id = ? AND r.status = 'active'
+    WHERE r.course_id = ? AND r.status = 'approved'
     ORDER BY r.created_at DESC
-    LIMIT 6
+    LIMIT 5
 ");
 $stmt->execute([$course_id]);
 $recent_reviews = $stmt->fetchAll();
@@ -185,9 +185,7 @@ $current_page = 'courses';
                                 <a href="edit-course.php?id=<?php echo $course['id']; ?>" class="btn btn-warning" style="white-space: nowrap; font-size: 0.875rem;">
                                     <i class="fas fa-edit me-1"></i>Chỉnh sửa
                                 </a>
-                                <a href="course-reviews.php?course_id=<?php echo $course['id']; ?>" class="btn btn-success" style="white-space: nowrap; font-size: 0.875rem;">
-                                    <i class="fas fa-star me-1"></i>Reviews
-                                </a>
+
                                 <a href="courses.php" class="btn btn-light" style="white-space: nowrap; font-size: 0.875rem;">
                                     <i class="fas fa-arrow-left me-1"></i>Quay lại
                                 </a>
@@ -438,7 +436,7 @@ $current_page = 'courses';
                         <?php endforeach; ?>
                         <div class="text-center mt-3 pt-3 border-top">
                             <a href="course-students.php?course_id=<?php echo $course['id']; ?>" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-users me-1"></i>Xem tất cả <?php echo $stats['total_enrollments']; ?> học viên
+                                <i class="fas fa-users me-1"></i>Xem tất cả <?php ?> học viên
                             </a>
                         </div>
                     <?php else: ?>
@@ -459,53 +457,49 @@ $current_page = 'courses';
                             <i class="fas fa-star me-2"></i>Đánh giá gần đây
                         </h6>
                         <?php if (count($recent_reviews) > 0): ?>
-                            <a href="course-reviews.php?course_id=<?php echo $course['id']; ?>" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-eye me-1"></i>Xem tất cả
-                            </a>
+
                         <?php endif; ?>
                     </div>
                 </div>
                 <div class="card-body">
                     <?php if (count($recent_reviews) > 0): ?>
-                        <?php foreach ($recent_reviews as $index => $review): ?>
-                            <div class="mb-3 pb-3 <?php echo $index < count($recent_reviews) - 1 ? 'border-bottom' : ''; ?>">
-                                <div class="d-flex align-items-start">
-                                    <div class="flex-shrink-0">
-                                        <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center"
-                                            style="width: 36px; height: 36px;">
-                                            <i class="fas fa-user text-white small"></i>
-                                        </div>
+                        <?php foreach ($recent_reviews as $review): ?>
+                            <div class="d-flex align-items-center mb-3 p-2 rounded bg-light">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center"
+                                        style="width: 40px; height: 40px;">
+                                        <i class="fas fa-star text-white"></i>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <div class="d-flex justify-content-between align-items-start mb-1">
-                                            <h6 class="mb-0 small fw-bold"><?php echo htmlspecialchars($review['username']); ?></h6>
-                                            <small class="text-muted"><?php echo date('d/m', strtotime($review['created_at'])); ?></small>
-                                        </div>
-                                        <div class="text-warning mb-2">
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($review['username']); ?></h6>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <div class="text-warning me-2" style="font-size: 0.8rem;">
                                             <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                <i class="fas fa-star<?php echo $i <= $review['rating'] ? '' : '-o'; ?> fa-xs"></i>
+                                                <i class="fas fa-star<?php echo $i <= $review['rating'] ? '' : '-o'; ?>"></i>
                                             <?php endfor; ?>
-                                            <span class="text-muted small ms-1">(<?php echo $review['rating']; ?>/5)</span>
                                         </div>
-                                        <?php if (!empty($review['comment'])): ?>
-                                            <p class="mb-0 small text-muted lh-sm">
-                                                <i class="fas fa-quote-left me-1 text-primary"></i>
-                                                <?php echo htmlspecialchars(mb_substr($review['comment'], 0, 120)); ?><?php echo mb_strlen($review['comment']) > 120 ? '...' : ''; ?>
-                                            </p>
-                                        <?php endif; ?>
+                                        <span class="badge bg-warning text-dark"><?php echo $review['rating']; ?>/5</span>
                                     </div>
+                                    <?php if (!empty($review['comment'])): ?>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-quote-left me-1"></i>
+                                            <?php echo htmlspecialchars(mb_substr($review['comment'], 0, 50)); ?><?php echo mb_strlen($review['comment']) > 50 ? '...' : ''; ?>
+                                        </small>
+                                    <?php endif; ?>
+                                    <small class="text-success">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <?php echo date('d/m/Y H:i', strtotime($review['created_at'])); ?>
+                                    </small>
                                 </div>
                             </div>
                         <?php endforeach; ?>
-
-                        <?php if (count($recent_reviews) >= 6): ?>
-                            <div class="text-center pt-2 border-top">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Hiển thị 6 đánh giá gần nhất
-                                </small>
-                            </div>
-                        <?php endif; ?>
+                        
+                        <div class="text-center mt-3 pt-3 border-top">
+                            <a href="course-reviews.php?course_id=<?php echo $course['id']; ?>" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-star me-1"></i>Xem tất cả <?php  ?> đánh giá
+                            </a>
+                        </div>
                     <?php else: ?>
                         <div class="text-center py-4">
                             <i class="fas fa-star fa-3x text-muted mb-3 opacity-50"></i>

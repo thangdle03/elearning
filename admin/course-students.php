@@ -661,11 +661,7 @@ $has_filters = !empty($search) || !empty($date_from) || !empty($date_to) || ($so
                                                 <i class="fas fa-eye"></i>
                                             </button>
 
-                                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                                onclick="sendMessage(<?php echo $student['user_id']; ?>, '<?php echo addslashes($student['username']); ?>')"
-                                                title="Gửi tin nhắn">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
+
 
                                             <button type="button" class="btn btn-sm btn-outline-danger"
                                                 onclick="removeStudent(<?php echo $student['user_id']; ?>, '<?php echo addslashes($student['username']); ?>')"
