@@ -539,6 +539,11 @@ if (!function_exists('timeAgo')) {
                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                         </a>
                     </li>
+        
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITE_URL; ?>/my-courses.php">
+                            <i class="fas fa-user-graduate me-1"></i>Khóa học của tôi
+                        </a>
                 </ul>
 
                 <ul class="navbar-nav">

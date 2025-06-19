@@ -157,20 +157,7 @@ if ($_POST) {
                     </div>
                     <?php endif; ?>
                     
-                    <!-- Demo Accounts -->
-                    <div class="demo-accounts mb-4">
-                        <p class="small text-muted mb-2">
-                            <i class="bi bi-info-circle me-1"></i>Tài khoản demo:
-                        </p>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="fillDemo('admin')">
-                                <i class="bi bi-shield-check me-1"></i>Admin
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-success" onclick="fillDemo('student')">
-                                <i class="bi bi-person me-1"></i>Học viên
-                            </button>
-                        </div>
-                    </div>
+
                     
                     <!-- Login Form -->
                     <form method="POST" id="loginForm" novalidate>
