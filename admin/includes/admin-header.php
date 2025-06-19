@@ -560,17 +560,24 @@ if (!isLoggedIn() || !isAdmin()) {
                     </div>
                 </div>
 
+                <!-- Reviews -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Đánh giá</div>
+                    <div class="nav-item">
+                        <a class="nav-link <?php echo ($current_page ?? '') === 'reviews' ? 'active' : ''; ?>"
+                            href="<?php echo SITE_URL; ?>/admin/reviews.php">
+                            <i class="fas fa-star"></i>
+                            Quản lý Đánh giá
+                        </a>
+                    </div>
+                </div>
+
                 <div class="nav-divider"></div>
 
                 <!-- Quick Actions -->
                 <div class="nav-section">
                     <div class="nav-section-title">Liên kết nhanh</div>
-                    <div class="nav-item">
-                        <a class="nav-link" href="<?php echo SITE_URL; ?>/" target="_blank">
-                            <i class="fas fa-external-link-alt"></i>
-                            Xem trang web
-                        </a>
-                    </div>
+                    
                     <div class="nav-item">
                         <a class="nav-link" href="<?php echo SITE_URL; ?>/profile.php">
                             <i class="fas fa-user-circle"></i>
