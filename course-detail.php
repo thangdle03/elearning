@@ -1249,6 +1249,36 @@ include 'includes/header.php';
         margin-bottom: 1rem;
     }
 
+    /* Enrollment Section - Fixed at bottom */
+    .enrollment-section {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem;
+        border-top: 1px solid #e5e7eb;
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .enrollment-section.show {
+        transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+        .enrollment-section .payment-options {
+            flex-direction: column;
+        }
+        
+        .enrollment-section .payment-options .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .related-grid {
@@ -1441,16 +1471,30 @@ include 'includes/header.php';
                                         <span>Bạn đã đăng ký khóa học này</span>
                                     </div>
                                 <?php else: ?>
-                                    <form method="POST" class="w-100">
-                                        <button type="submit" name="enroll" class="btn-enroll primary">
-                                            <i class="fas fa-shopping-cart"></i>
-                                            <span><?php echo $course['price'] > 0 ? 'Mua khóa học' : 'Đăng ký miễn phí'; ?></span>
-                                        </button>
-                                    </form>
-                                    <div class="guarantee-text">
-                                        <i class="fas fa-shield-alt"></i>
-                                        <span>Đảm bảo hoàn tiền 30 ngày</span>
-                                    </div>
+                                    <?php if ($course['price'] > 0): ?>
+                                        <!-- Paid course - redirect to payment -->
+                                        <a href="<?php echo SITE_URL; ?>/payment/zalopay_checkout.php?course=<?php echo $course_id; ?>" 
+                                           class="btn-enroll primary">
+                                            <i class="fas fa-credit-card"></i>
+                                            <span>Mua khóa học</span>
+                                        </a>
+                                        <div class="guarantee-text">
+                                            <i class="fas fa-shield-alt"></i>
+                                            <span>Thanh toán an toàn với ZaloPay</span>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Free course - direct enrollment -->
+                                        <form method="POST" class="w-100">
+                                            <button type="submit" name="enroll" class="btn-enroll primary">
+                                                <i class="fas fa-plus"></i>
+                                                <span>Đăng ký miễn phí</span>
+                                            </button>
+                                        </form>
+                                        <div class="guarantee-text">
+                                            <i class="fas fa-gift"></i>
+                                            <span>Hoàn toàn miễn phí</span>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             <?php else: ?>
                                 <a href="<?php echo SITE_URL; ?>/login.php" class="btn-enroll warning">
@@ -1778,20 +1822,7 @@ include 'includes/header.php';
                                             </div>
                                             <div class="related-stat">
                                                 <i class="fas fa-clock"></i>
-                                                <span><?php echo $related['duration']; ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="related-footer">
-                                            <div class="related-price">
-                                                <?php if ($related['price'] == 0): ?>
-                                                    <span class="free-badge">
-                                                        <i class="fas fa-gift"></i>
-                                                        Miễn phí
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="price-amount"><?php echo number_format($related['price'], 0, ',', '.'); ?>đ</span>
-                                                <?php endif; ?>
+                                                <span><?php echo htmlspecialchars($related['duration']); ?></span>
                                             </div>
                                             <a href="<?php echo SITE_URL; ?>/course-detail.php?id=<?php echo $related['id']; ?>"
                                                 class="btn-outline">
@@ -1831,6 +1862,41 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+
+<?php if (!$is_enrolled && $course['price'] > 0): ?>
+<div class="enrollment-section" style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 1rem; border-top: 1px solid #e5e7eb; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-3">
+                    <div>
+                        <h6 class="mb-0"><?php echo htmlspecialchars($course['title']); ?></h6>
+                        <p class="text-muted mb-0">
+                            <strong class="text-primary"><?php echo number_format($course['price']); ?>₫</strong>
+                            - Thanh toán một lần, học trọn đời
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="payment-options d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" onclick="location.href='<?php echo SITE_URL; ?>/payment/zalopay_checkout.php?course=<?php echo $course_id; ?>'">
+                        <i class="fab fa-zap me-2"></i>
+                        Thanh toán ZaloPay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add padding to body to avoid overlap -->
+<style>
+body {
+    padding-bottom: 100px;
+}
+</style>
+<?php endif; ?>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -1925,6 +1991,23 @@ include 'includes/header.php';
 
             if (scrolled < 500) {
                 courseCard.style.transform = `translateY(${-6 * 16 + parallax}px)`;
+            }
+        }
+    });
+
+    // Show payment bar when scrolling
+    window.addEventListener('scroll', function() {
+        const enrollmentSection = document.querySelector('.enrollment-section');
+        const courseCard = document.querySelector('.course-card');
+        
+        if (enrollmentSection && courseCard) {
+            const courseCardRect = courseCard.getBoundingClientRect();
+            const isCardVisible = courseCardRect.top < window.innerHeight && courseCardRect.bottom > 0;
+            
+            if (!isCardVisible) {
+                enrollmentSection.classList.add('show');
+            } else {
+                enrollmentSection.classList.remove('show');
             }
         }
     });
