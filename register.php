@@ -467,7 +467,7 @@ if ($_POST) {
 }
 </style>
 
-<!-- JavaScript -->
+<!-- Simplified Validation JavaScript -->
 <script>
 // Toggle password visibility
 function setupPasswordToggle(passwordId, toggleId) {
@@ -488,98 +488,220 @@ function setupPasswordToggle(passwordId, toggleId) {
 setupPasswordToggle('password', 'togglePassword');
 setupPasswordToggle('confirm_password', 'toggleConfirmPassword');
 
-// Simplified password validation (without strength UI)
-function validatePassword(password) {
-    const requirements = {
-        length: password.length >= 8 && password.length <= 255,
-        lowercase: /[a-z]/.test(password),
-        uppercase: /[A-Z]/.test(password),
-        number: /\d/.test(password),
-        special: /[@$!%*?&]/.test(password)
-    };
+// Validation functions
+function showFieldError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    const existingError = field.parentNode.parentNode.querySelector('.validation-error');
     
-    // Check if all requirements are met
-    return Object.values(requirements).every(req => req === true);
-}
-
-// Password input event
-document.getElementById('password').addEventListener('input', function() {
-    updateSubmitButton();
-});
-
-// Password confirmation check
-document.getElementById('confirm_password').addEventListener('input', function() {
-    const password = document.getElementById('password').value;
-    const confirmPassword = this.value;
-    const feedback = document.getElementById('password-match-feedback');
-    
-    if (confirmPassword) {
-        if (password === confirmPassword) {
-            this.classList.remove('is-invalid');
-            this.classList.add('is-valid');
-            feedback.innerHTML = '<i class="bi bi-check-circle me-1 text-success"></i><span class="match-success">Mật khẩu khớp</span>';
-        } else {
-            this.classList.remove('is-valid');
-            this.classList.add('is-invalid');
-            feedback.innerHTML = '<i class="bi bi-x-circle me-1 text-danger"></i><span class="match-error">Mật khẩu không khớp</span>';
-        }
-    } else {
-        this.classList.remove('is-valid', 'is-invalid');
-        feedback.innerHTML = '';
+    // Remove existing error
+    if (existingError) {
+        existingError.remove();
     }
     
-    updateSubmitButton();
-});
+    // Add error class and message
+    field.classList.add('is-invalid');
+    field.classList.remove('is-valid');
+    
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'validation-error text-danger mt-1';
+    errorDiv.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + message;
+    
+    field.parentNode.parentNode.appendChild(errorDiv);
+}
+
+function showFieldSuccess(fieldId) {
+    const field = document.getElementById(fieldId);
+    const existingError = field.parentNode.parentNode.querySelector('.validation-error');
+    
+    // Remove existing error
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+}
+
+function clearFieldValidation(fieldId) {
+    const field = document.getElementById(fieldId);
+    const existingError = field.parentNode.parentNode.querySelector('.validation-error');
+    
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    field.classList.remove('is-invalid', 'is-valid');
+}
 
 // Username validation
 document.getElementById('username').addEventListener('input', function() {
     const username = this.value.trim();
-    if (username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username)) {
-        this.classList.remove('is-invalid');
-        this.classList.add('is-valid');
-    } else {
-        this.classList.remove('is-valid');
-        this.classList.add('is-invalid');
+    
+    if (username === '') {
+        clearFieldValidation('username');
+        return;
     }
+    
+    if (username.length < 3) {
+        showFieldError('username', 'Tên đăng nhập phải có ít nhất 3 ký tự');
+        return;
+    }
+    
+    if (username.length > 20) {
+        showFieldError('username', 'Tên đăng nhập không được quá 20 ký tự');
+        return;
+    }
+    
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        showFieldError('username', 'Chỉ được sử dụng chữ cái, số và dấu gạch dưới');
+        return;
+    }
+    
+    // Check reserved usernames
+    const reserved = ['admin', 'administrator', 'root', 'user', 'guest', 'support', 'help'];
+    if (reserved.includes(username.toLowerCase())) {
+        showFieldError('username', 'Tên đăng nhập này đã được hệ thống sử dụng');
+        return;
+    }
+    
+    showFieldSuccess('username');
     updateSubmitButton();
 });
 
 // Email validation
 document.getElementById('email').addEventListener('input', function() {
     const email = this.value.trim();
-    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        this.classList.remove('is-invalid');
-        this.classList.add('is-valid');
-    } else {
-        this.classList.remove('is-valid');
-        this.classList.add('is-invalid');
+    
+    if (email === '') {
+        clearFieldValidation('email');
+        return;
     }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showFieldError('email', 'Định dạng email không hợp lệ');
+        return;
+    }
+    
+    showFieldSuccess('email');
     updateSubmitButton();
 });
 
-// Terms checkbox
+// Password validation
+document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
+    
+    if (password === '') {
+        clearFieldValidation('password');
+        return;
+    }
+    
+    // Check length
+    if (password.length < 8) {
+        showFieldError('password', 'Mật khẩu phải có ít nhất 8 ký tự');
+        return;
+    }
+    
+    if (password.length > 255) {
+        showFieldError('password', 'Mật khẩu không được quá 255 ký tự');
+        return;
+    }
+    
+    // Check lowercase
+    if (!/[a-z]/.test(password)) {
+        showFieldError('password', 'Mật khẩu phải có ít nhất 1 chữ thường (a-z)');
+        return;
+    }
+    
+    // Check uppercase
+    if (!/[A-Z]/.test(password)) {
+        showFieldError('password', 'Mật khẩu phải có ít nhất 1 chữ hoa (A-Z)');
+        return;
+    }
+    
+    // Check number
+    if (!/\d/.test(password)) {
+        showFieldError('password', 'Mật khẩu phải có ít nhất 1 số (0-9)');
+        return;
+    }
+    
+    // Check special character
+    if (!/[@$!%*?&]/.test(password)) {
+        showFieldError('password', 'Mật khẩu phải có ít nhất 1 ký tự đặc biệt (@$!%*?&)');
+        return;
+    }
+    
+    // Check common passwords
+    const commonPasswords = ['password', '123456', 'qwerty', 'admin', 'user', 'welcome'];
+    if (commonPasswords.some(common => password.toLowerCase().includes(common))) {
+        showFieldError('password', 'Mật khẩu quá đơn giản, vui lòng chọn mật khẩu khác');
+        return;
+    }
+    
+    showFieldSuccess('password');
+    
+    // Also validate confirm password if it has value
+    const confirmPassword = document.getElementById('confirm_password').value;
+    if (confirmPassword) {
+        document.getElementById('confirm_password').dispatchEvent(new Event('input'));
+    }
+    
+    updateSubmitButton();
+});
+
+// Confirm password validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (confirmPassword === '') {
+        clearFieldValidation('confirm_password');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        showFieldError('confirm_password', 'Mật khẩu xác nhận không khớp');
+        return;
+    }
+    
+    showFieldSuccess('confirm_password');
+    updateSubmitButton();
+});
+
+// Terms checkbox validation
 document.getElementById('terms').addEventListener('change', function() {
+    const termsError = document.querySelector('.terms-error');
+    if (termsError) {
+        termsError.remove();
+    }
+    
+    if (!this.checked) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'terms-error text-danger mt-1';
+        errorDiv.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Bạn phải đồng ý với điều khoản sử dụng';
+        
+        this.parentNode.parentNode.appendChild(errorDiv);
+    }
+    
     updateSubmitButton();
 });
 
 // Update submit button state
 function updateSubmitButton() {
-    const username = document.getElementById('username').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm_password').value;
-    const termsChecked = document.getElementById('terms').checked;
+    const username = document.getElementById('username');
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const terms = document.getElementById('terms');
     const submitBtn = document.getElementById('registerBtn');
     
-    // Check all conditions
-    const isUsernameValid = username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
-    const isEmailValid = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const isPasswordValid = validatePassword(password);
-    const isPasswordMatch = password === confirmPassword && password.length > 0;
-    const isTermsAccepted = termsChecked;
+    // Check if all fields are valid
+    const isValid = username.classList.contains('is-valid') &&
+                   email.classList.contains('is-valid') &&
+                   password.classList.contains('is-valid') &&
+                   confirmPassword.classList.contains('is-valid') &&
+                   terms.checked;
     
-    // Enable button only if all conditions are met
-    if (isUsernameValid && isEmailValid && isPasswordValid && isPasswordMatch && isTermsAccepted) {
+    if (isValid) {
         submitBtn.disabled = false;
         submitBtn.classList.remove('btn-secondary');
         submitBtn.classList.add('btn-success');
@@ -590,49 +712,66 @@ function updateSubmitButton() {
     }
 }
 
-// Form validation on submit
+// Form submission validation
 document.getElementById('registerForm').addEventListener('submit', function(e) {
     const btn = document.getElementById('registerBtn');
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    // Final validation before submit
     const username = document.getElementById('username').value.trim();
     const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
     const terms = document.getElementById('terms').checked;
     
-    // Final validation
-    if (!username || username.length < 3) {
-        e.preventDefault();
-        alert('Tên đăng nhập phải có ít nhất 3 ký tự!');
-        return;
+    let hasErrors = false;
+    
+    // Validate all fields one more time
+    if (!username || username.length < 3 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+        document.getElementById('username').dispatchEvent(new Event('input'));
+        hasErrors = true;
     }
     
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        e.preventDefault();
-        alert('Email không hợp lệ!');
-        return;
+        document.getElementById('email').dispatchEvent(new Event('input'));
+        hasErrors = true;
     }
     
-    if (password.length < 8 || password.length > 255) {
-        e.preventDefault();
-        alert('Mật khẩu phải có từ 8-255 ký tự!');
-        return;
-    }
-    
-    if (!validatePassword(password)) {
-        e.preventDefault();
-        alert('Mật khẩu phải chứa ít nhất: 1 chữ thường, 1 chữ hoa, 1 số và 1 ký tự đặc biệt (@$!%*?&)!');
-        return;
+    if (!password || password.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(password)) {
+        document.getElementById('password').dispatchEvent(new Event('input'));
+        hasErrors = true;
     }
     
     if (password !== confirmPassword) {
-        e.preventDefault();
-        alert('Mật khẩu xác nhận không khớp!');
-        return;
+        document.getElementById('confirm_password').dispatchEvent(new Event('input'));
+        hasErrors = true;
     }
     
     if (!terms) {
+        document.getElementById('terms').dispatchEvent(new Event('change'));
+        hasErrors = true;
+    }
+    
+    if (hasErrors) {
         e.preventDefault();
-        alert('Bạn phải đồng ý với điều khoản sử dụng!');
+        
+        // Show general error message
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Vui lòng sửa các lỗi được đánh dấu bên dưới
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const form = document.getElementById('registerForm');
+        form.insertAdjacentElement('beforebegin', alertDiv);
+        
+        // Scroll to first error
+        const firstError = document.querySelector('.is-invalid');
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
         return;
     }
     
@@ -641,13 +780,56 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     btn.disabled = true;
 });
 
-// Auto focus on username field
+// Auto focus on first field
 document.getElementById('username').focus();
 
-// Initialize button state on page load
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     updateSubmitButton();
 });
 </script>
+
+<!-- Additional CSS for validation styling -->
+<style>
+.validation-error {
+    font-size: 0.875rem;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-control.is-valid {
+    border-color: #198754;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.94-.94 2.94 2.94L8.5 6.4l-.94-.94L5.23 7.8 2.3 6.73z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m9 3-6 6m0-6 6 6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    opacity: 0.6;
+}
+</style>
 
 <?php include 'includes/footer.php'; ?>
